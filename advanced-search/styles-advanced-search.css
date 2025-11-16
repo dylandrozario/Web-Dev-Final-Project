@@ -107,3 +107,42 @@ button:focus {
     outline: 2px solid var(--text);
     outline-offset: -2px;
 }
+
+.user-nav {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.user-icon-button,
+.cart-button {
+    background: none;
+    border: none;
+    padding: 0.5rem;
+    cursor: pointer;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    font-size: 0.9rem;
+}
+
+.cart-button {
+    position: relative;
+}
+
+.cart-badge {
+    position: absolute;
+    top: 0;
+    right: 0;
+    background: var(--accent);
+    color: white;
+    font-size: 0.75rem;
+    font-weight: 600;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transform: translate(25%, -25%);
+}
