@@ -50,3 +50,47 @@ function performSearch(searchTerm) {
     // This would typically filter the book results
     // For now, just log the search term
 }
+
+function initializeCart() {
+    const cartButton = document.querySelector('.cart-button');
+    const addToCartButtons = document.querySelectorAll('.add-to-cart-icon');
+    const cartBadge = document.querySelector('.cart-count');
+    let cartCount = 0; 
+    
+    // Update cart badge
+    function updateCartBadge() {
+        if (cartBadge) {
+            cartBadge.textContent = cartCount;
+            if (cartCount === 0) {
+                cartBadge.style.display = 'none';
+            } else {
+                cartBadge.style.display = 'flex';
+            }
+        }
+    }
+    
+    // Add to cart functionality
+    addToCartButtons.forEach(button => {
+        button.addEventListener('click', (e) => {
+            e.stopPropagation();
+            cartCount++;
+            updateCartBadge();
+            
+            
+            button.style.transform = 'scale(1.2)';
+            setTimeout(() => {
+                button.style.transform = 'scale(1)';
+            }, 200);
+        });
+    });
+    
+
+    if (cartButton) {
+        cartButton.addEventListener('click', () => {
+            console.log('Cart clicked - would open cart modal/page');
+        });
+    }
+    
+
+    updateCartBadge();
+}
