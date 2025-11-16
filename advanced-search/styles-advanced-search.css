@@ -96,3 +96,14 @@ body {
     display: flex;
     align-items: center;
 }
+
+button {
+    transition: all 0.2s ease;
+}
+
+button:hover,
+button:focus {
+    background-color: var(--hover);
+    outline: 2px solid var(--text);
+    outline-offset: -2px;
+}
