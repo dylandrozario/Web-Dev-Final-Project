@@ -146,3 +146,9 @@ button:focus {
     justify-content: center;
     transform: translate(25%, -25%);
 }
+
+.main-content {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 2rem;
+}
