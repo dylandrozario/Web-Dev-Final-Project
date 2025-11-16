@@ -1,0 +1,102 @@
+.search-bar-container {
+  position: relative;
+  flex: 1;
+}
+
+.search-bar-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.search-input {
+  padding: 1rem 3rem 1rem 1.5rem;
+  font-size: 1.1rem;
+  border: 2px solid var(--gold);
+  border-radius: 8px;
+  background-color: var(--white);
+  color: var(--dark-maroon);
+  outline: none;
+  transition: all 0.3s ease;
+}
+
+#main-search-bar {
+  width: 1200px;
+  max-width: 1200px;
+}
+
+.search-bar-wrapper:has(#main-search-bar) {
+  width: 1200px;
+}
+
+.search-input:focus {
+  border-color: var(--light-gold);
+  box-shadow: 0 0 0 3px rgba(184, 148, 31, 0.2);
+}
+
+.search-input::placeholder {
+  color: var(--gray);
+}
+
+.search-icon {
+  position: absolute;
+  right: 1rem;
+  font-size: 1.2rem;
+  pointer-events: none;
+}
+
+.search-results {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  margin-top: 0.5rem;
+  background-color: var(--white);
+  border: 2px solid var(--gold);
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  z-index: 1000;
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+.search-result-item {
+  padding: 1rem;
+  border-bottom: 1px solid rgba(107, 31, 31, 0.1);
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.search-result-item:last-child {
+  border-bottom: none;
+}
+
+.search-result-item:hover {
+  background-color: rgba(212, 175, 55, 0.1);
+}
+
+.result-title {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--dark-maroon);
+  margin-bottom: 0.25rem;
+}
+
+.result-author {
+  font-size: 0.9rem;
+  color: var(--gray);
+  margin-bottom: 0.25rem;
+}
+
+.result-isbn {
+  font-size: 0.85rem;
+  color: var(--gray);
+  font-family: monospace;
+}
+
+.no-results {
+  padding: 2rem;
+  text-align: center;
+  color: var(--gray);
+}
+
