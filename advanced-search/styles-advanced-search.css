@@ -377,3 +377,7 @@ button:focus {
     outline-offset: 2px;
 }
 
+.books-grid {
+    flex: 1;
+    max-width: 200px;
+}
