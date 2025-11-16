@@ -104,3 +104,11 @@ if (sortSelect) {
         // For now, just log the sort value
     });
 }
+
+const filterCheckboxes = document.querySelectorAll('.filter-content input[type="checkbox"]');
+filterCheckboxes.forEach(checkbox => {
+    checkbox.addEventListener('change', () => {
+        // This would typically filter the book results
+        console.log('Filter changed:', checkbox.value, checkbox.checked);
+    });
+});
