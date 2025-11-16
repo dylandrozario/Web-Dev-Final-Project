@@ -247,3 +247,42 @@ button:focus {
     align-items: center;
     justify-content: center;
 }
+
+.library-section {
+    margin-top: 3rem;
+}
+
+.library-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 2rem;
+    gap: 1rem;
+    flex-wrap: wrap;
+}
+
+.library-title {
+    font-size: 2rem;
+    font-weight: 700;
+    margin-bottom: 0.25rem;
+}
+
+.library-count {
+    font-size: 0.9rem;
+    color: var(--text-light);
+}
+
+.sort-select {
+    padding: 0.5rem 1rem;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    font-size: 0.9rem;
+    cursor: pointer;
+}
+
+.sort-select:hover,
+.sort-select:focus {
+    border-color: var(--text);
+    outline: 2px solid var(--text);
+    outline-offset: 2px;
+}
