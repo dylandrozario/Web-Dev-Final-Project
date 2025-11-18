@@ -22,12 +22,12 @@ export default function BookRatingReview({book}) {
     };
 
     return (
-        <div className="book-rating-review"> {/* CHANGED */}
+        <div className="book-rating-review">
 
             {/* Average Rating */}
             <div className="row">
                 <StarRating rating={averageRating(book.ratings)} />
-                <span>Average from {book.ratings.length} ratings</span>
+                <span>Average over {book.ratings.length} ratings</span>
             </div>
 
             {/* RATE / REVIEW / SAVE buttons */}
@@ -66,7 +66,7 @@ export default function BookRatingReview({book}) {
 
                 {negative && (
                     <div className="review-col">
-                        <div className="review-header">Top Negative Review</div> {/* NEW */}
+                        <div className="review-header">Top Negative Review</div>
                         <div className="row">
                             <StarRating rating={negative.rating} />
                             <span>{negative.author}</span>
@@ -74,10 +74,10 @@ export default function BookRatingReview({book}) {
                         <p className="comment">{negative.comment}</p>
                     </div>
                 )}
-            </div> {/* NEW */}
+            </div>
 
             <div className="see-all">
-                <a href="#">See all {book.reviews.length} reviews</a> {/* CHANGED */}
+                <a href="#">See all {book.reviews.length} reviews</a>
             </div>
 
         </div>

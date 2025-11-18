@@ -11,12 +11,10 @@ export default function NavBar() {
 
     return (
         <nav className="navbar">
-            {/* LEFT: LIBRARY */}
             <button onClick={reloadPage} className="navbar-logo">
                 LIBRARY
             </button>
 
-            {/* RIGHT: ICONS — magnifying → bookshelf → profile */}
             <div className="navbar-icons">
                 <button className="navbar-icon-btn"><FaMagnifyingGlass /></button>
                 <button className="navbar-icon-btn"><GiBookshelf /></button>

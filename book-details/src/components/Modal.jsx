@@ -1,5 +1,5 @@
 export default function Modal({ open, onClose, children }) {
-    if (!open) return null; // ⬅ modal is hidden unless open = true
+    if (!open) return null; // modal is hidden unless open = true
 
     return (
         <div style={styles.overlay}>

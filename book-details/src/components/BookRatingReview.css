@@ -1,33 +1,32 @@
 .book-rating-review {
     display: flex;
     flex-direction: column;
-    gap: 12px; /* space between main sections */
+    gap: 12px;
 }
 
 /* Row: stars + text on same line */
 .book-rating-review .row {
     display: flex;
     align-items: center;
-    gap: 6px; /* small gap between stars and text */
+    gap: 6px;
 }
 
-/* Button row: RATE / REVIEW / SAVE */
 .book-rating-review .button-row {
     display: flex;
-    gap: 8px; /* space between buttons */
+    gap: 8px;
 }
 
 /* Mini positive/negative review columns */
 .book-rating-review .reviews-mini {
     display: flex;
-    gap: 16px; /* gap between positive & negative columns */
+    gap: 16px;
 }
 
 .book-rating-review .review-col {
     flex: 1;
     display: flex;
     flex-direction: column;
-    gap: 4px; /* small gap inside each mini column */
+    gap: 4px;
 }
 
 .book-rating-review .review-header {
@@ -35,13 +34,11 @@
     margin-bottom: 4px;
 }
 
-/* Comment paragraph */
 .book-rating-review .comment {
     margin: 0;
 }
 
-/* See all reviews link centered, smaller gap */
 .book-rating-review .see-all {
     text-align: center;
-    margin-top: 4px; /* reduced gap */
+    margin-top: 4px;
 }

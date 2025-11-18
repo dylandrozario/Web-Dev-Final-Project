@@ -15,9 +15,7 @@ export default function ReviewForm({ onSubmit }) {
         <form onSubmit={handleSubmit}>
             <h2>Write a Review</h2>
 
-            {/* ⭐ CLICKABLE STAR RATING (UPDATED) */}
-            {/* ▼▼▼ EVERYTHING IN THIS BLOCK IS NEW OR CHANGED ▼▼▼ */}
-            <label>Rating:</label>  {/* CHANGED: removed <select> */}
+            <label>Rating:</label>
 
             {/* ★ ADDED: STAR SELECTOR */}
             <div 
@@ -26,20 +24,19 @@ export default function ReviewForm({ onSubmit }) {
                 {[1, 2, 3, 4, 5].map((n) => (
                     <span
                         key={n}
-                        onClick={() => setRating(n)}              // ★ ADDED (click to set rating)
-                        onMouseEnter={() => setHover(n)}          // ★ ADDED (hover color effect)
-                        onMouseLeave={() => setHover(0)}          // ★ ADDED
+                        onClick={() => setRating(n)}
+                        onMouseEnter={() => setHover(n)}
+                        onMouseLeave={() => setHover(0)}
                         style={{
-                            color: (hover || rating) >= n ? "gold" : "#ccc",  // ★ ADDED
+                            color: (hover || rating) >= n ? "gold" : "#ccc",
                         }}
                     >
-                        ★ {/* ★ ADDED — STAR CHAR */}
+                        ★
                     </span>
                 ))}
             </div>
 
-            <p style={{ margin: 0 }}>Your rating: {rating}/5</p> {/* ADDED */}
-            {/* ▲▲▲ END UPDATED STAR RATING BLOCK ▲▲▲ */}
+            <p style={{ margin: 0 }}>Your rating: {rating}/5</p>
 
             <label>Comment:</label>
             <textarea

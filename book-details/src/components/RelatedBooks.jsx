@@ -1,8 +1,8 @@
-import './RelatedBooks.css'; // make sure this path is correct
+import './RelatedBooks.css';
 
 export default function RelatedBooks({ book }) {
   return (
-    <div className="related-section"> {/* container matches your page CSS */}
+    <div className="related-section">
       <h4 className="related-books-heading">Enjoyed {book.title}? Try these!</h4>
       <div className="related-books-grid">
         {book.relatedBooks.map((item, index) => (

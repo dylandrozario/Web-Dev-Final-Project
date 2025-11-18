@@ -3,49 +3,43 @@
   grid-template-areas:
     "heading heading"
     "left right"
-    "related related"; /* related books at the bottom spanning both columns */
+    "related related";
   grid-template-columns: 1fr 1fr;
-  gap: 16px; /* CHANGED: slightly smaller gap between main grid rows */
-  padding: 16px; /* CHANGED: reduced from 20px to shrink space around page */
+  gap: 16px;
+  padding: 16px;
   max-width: 1200px;
   margin: 0 auto;
 }
 
-/* Heading at top */
 .heading {
   grid-area: heading;
-  margin-bottom: 4px; /* CHANGED: reduced from 8px */
-  /* NEW: tighten spacing for H1/H2 inside heading */
+  margin-bottom: 4px;
   line-height: 1.2;
 }
 
-/* Left column: just the cover image */
 .left-column {
   grid-area: left;
   display: flex;
   flex-direction: column;
-  gap: 12px; /* CHANGED: reduced gap to tighten cover spacing */
+  gap: 12px;
 }
 
-/* Right column: description, tags, rating/review, availability */
 .right-column {
   grid-area: right;
   display: flex;
   flex-direction: column;
-  gap: 20px; /* CHANGED: slightly reduced gap */
+  gap: 20px;
 }
 
-/* Related books spans full width */
 .related-section {
   grid-area: related;
   display: flex;
   flex-wrap: wrap;
   justify-content: center;
   gap: 16px;
-  margin-top: 4px; /* CHANGED: move section up closer to availability */
+  margin-top: 4px;
 }
 
-/* Make images scale naturally */
 .left-column img,
 .right-column img {
   width: 100%;
@@ -70,9 +64,9 @@
 }
 
 .heading h1 {
-  margin-bottom: 2px; /* CHANGED: tighten space below the title */
+  margin-bottom: 2px;
 }
 
 .heading h2 {
-  margin-top: 5; /* CHANGED: remove default top margin */
+  margin-top: 5;
 }

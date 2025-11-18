@@ -9,19 +9,18 @@
   
   /* container for tags */
   .tag-list {
-    list-style: none; /* remove bullets */
+    list-style: none;
     display: flex;
-    gap: 8px; /* space between tags */
+    gap: 8px; 
     padding: 0;
     margin: 0;
   }
   
-  /* each tag styled as an oval */
   .tag-list li {
-    background-color: #ffd700; /* gold */
-    color: #800000; /* maroon text for contrast */
+    background-color: #ffd700;
+    color: #800000;
     padding: 4px 12px;
-    border-radius: 999px; /* full oval */
+    border-radius: 999px;
     font-size: 14px;
     font-weight: 500;
     white-space: nowrap;
