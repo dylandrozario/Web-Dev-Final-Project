@@ -1,11 +1,14 @@
-import LOTRimage from "../images/LOTRimage.jpg"
+import LOTR from "../images/LOTR.jpg"
 import hobbit from "../images/hobbit.jpg"
+import fellowship from "../images/fellowship.jpg"
+import towers from "../images/towers.jpg"
+import king from "../images/king.jpg"
 
 export const book = {
     "title": "The Lord of the Rings",
     "author": "J.R.R. Tolkien",
-    "cover": LOTRimage,
-    "description": "The Lord of the Rings is an epic fantasy novel by J.R.R. Tolkien. It is the first volume of The Hobbit, followed by The Fellowship of the Ring, The Two Towers, and The Return of the King.",
+    "cover": LOTR,
+    "description": "The Lord of the Rings is a fantasy novel by J.R.R. Tolkien about the hobbit Frodo Baggins who must destroy the One Ring, an artifact of immense power created by the Dark Lord Sauron. To save their world, Middle-earth, from Sauron's conquest, Frodo undertakes a perilous quest with a Fellowship of nine companions to cast the Ring into the fires of Mount Doom. The story follows their journey, the breaking of the Fellowship, and the wider war against Sauron's forces.",
     "releaseDate": "1954-07-29",
     "isbn": "978-0-544-00035-4",
     "tags": ["Fantasy", "Adventure", "Fantasy Fiction", "Epic Fantasy"],
@@ -64,8 +67,8 @@ export const book = {
     ],
     relatedBooks: [
         { title: "The Hobbit", image: hobbit },
-        { title: "The Fellowship of the Ring", image: "fellowship.jpg" },
-        { title: "The Two Towers", image: "towers.jpg" },
-        { title: "The Return of the King", image: "return.jpg" }
+        { title: "The Fellowship of the Ring", image: fellowship },
+        { title: "The Two Towers", image: towers },
+        { title: "The Return of the King", image: king }
       ]          // eventually will make these somehow links to another book obj
 }

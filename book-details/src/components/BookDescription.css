@@ -1,0 +1,29 @@
+.book-description {
+    margin: 16px 0;
+    font-size: 16px;
+  }
+  
+  .book-description p {
+    margin-bottom: 12px;
+  }
+  
+  /* container for tags */
+  .tag-list {
+    list-style: none; /* remove bullets */
+    display: flex;
+    gap: 8px; /* space between tags */
+    padding: 0;
+    margin: 0;
+  }
+  
+  /* each tag styled as an oval */
+  .tag-list li {
+    background-color: #ffd700; /* gold */
+    color: #800000; /* maroon text for contrast */
+    padding: 4px 12px;
+    border-radius: 999px; /* full oval */
+    font-size: 14px;
+    font-weight: 500;
+    white-space: nowrap;
+  }
+  
