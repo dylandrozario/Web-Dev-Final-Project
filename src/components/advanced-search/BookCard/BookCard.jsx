@@ -4,7 +4,9 @@ import styles from './BookCard.module.css'
 const BookCard = ({ book, onAddToCart, variant = 'grid' }) => {
   const handleAddToCart = (e) => {
     e.stopPropagation()
-    onAddToCart(book)
+    if (onAddToCart) {
+      onAddToCart(book)
+    }
   }
 
   return (
@@ -15,13 +17,15 @@ const BookCard = ({ book, onAddToCart, variant = 'grid' }) => {
         <p className={styles.bookAuthor}>{book.author || 'Author Name'}</p>
         <div className={styles.bookAvailabilityRow}>
           <span className={styles.bookAvailability}>Availability: {book.availability || 1}</span>
-          <button 
-            className={styles.addToCartIcon}
-            onClick={handleAddToCart}
-            aria-label="Add to cart"
-          >
-            +
-          </button>
+          {onAddToCart && (
+            <button 
+              className={styles.addToCartIcon}
+              onClick={handleAddToCart}
+              aria-label="Add to cart"
+            >
+              +
+            </button>
+          )}
         </div>
       </div>
     </article>

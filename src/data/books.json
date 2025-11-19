@@ -1,0 +1,43 @@
+[
+  {
+    "title": "The Great Gatsby",
+    "author": "F. Scott Fitzgerald",
+    "releaseDate": "1925-04-10",
+    "isbn": "978-0-7432-7356-5",
+    "rating": 4.5,
+    "genre": "Fiction"
+  },
+  {
+    "title": "To Kill a Mockingbird",
+    "author": "Harper Lee",
+    "releaseDate": "1960-07-11",
+    "isbn": "978-0-06-112008-4",
+    "rating": 4.8,
+    "genre": "Fiction"
+  },
+  {
+    "title": "1984",
+    "author": "George Orwell",
+    "releaseDate": "1949-06-08",
+    "isbn": "978-0-452-28423-4",
+    "rating": 4.7,
+    "genre": "Dystopian"
+  },
+  {
+    "title": "The Lord of the Rings",
+    "author": "J.R.R. Tolkien",
+    "releaseDate": "1954-07-29",
+    "isbn": "978-0-544-00035-4",
+    "rating": 4.9,
+    "genre": "Fantasy"
+  },
+  {
+    "title": "Pride and Prejudice",
+    "author": "Jane Austen",
+    "releaseDate": "1813-01-28",
+    "isbn": "978-0-14-143951-8",
+    "rating": 4.6,
+    "genre": "Romance"
+  }
+]
+

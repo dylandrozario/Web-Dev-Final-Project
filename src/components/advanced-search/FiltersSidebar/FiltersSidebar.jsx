@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React from 'react'
 import FilterGroup from '../FilterGroup/FilterGroup'
 import styles from './FiltersSidebar.module.css'
 
@@ -11,6 +11,9 @@ const FiltersSidebar = ({ filters, onFilterChange }) => {
         { value: 'fiction', label: 'Fiction' },
         { value: 'non-fiction', label: 'Non-Fiction' },
         { value: 'mystery', label: 'Mystery' },
+        { value: 'fantasy', label: 'Fantasy' },
+        { value: 'romance', label: 'Romance' },
+        { value: 'dystopian', label: 'Dystopian' },
       ]
     },
     {

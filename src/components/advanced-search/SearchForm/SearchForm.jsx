@@ -6,7 +6,7 @@ const SearchForm = ({ onSearch }) => {
 
   const handleSubmit = (e) => {
     e.preventDefault()
-    if (searchTerm.trim()) {
+    if (searchTerm.trim() && onSearch) {
       onSearch(searchTerm.trim())
     }
   }

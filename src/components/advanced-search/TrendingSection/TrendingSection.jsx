@@ -3,6 +3,10 @@ import BookCard from '../BookCard/BookCard'
 import styles from './TrendingSection.module.css'
 
 const TrendingSection = ({ books = [], onAddToCart }) => {
+  if (books.length === 0) {
+    return null
+  }
+
   return (
     <section className={styles.trendingSection}>
       <div className={styles.trendingContainer}>
@@ -11,22 +15,14 @@ const TrendingSection = ({ books = [], onAddToCart }) => {
           <p className={styles.trendingSubtitle}>Explore new worlds from Authors</p>
         </div>
         <div className={styles.trendingBooksScroll}>
-          {books.length > 0 ? (
-            books.map((book, index) => (
-              <BookCard 
-                key={book.id || index} 
-                book={book} 
-                onAddToCart={onAddToCart}
-                variant="scroll"
-              />
-            ))
-          ) : (
+          {books.map((book, index) => (
             <BookCard 
-              book={{ title: 'Book Title', author: 'Author Name', availability: 1 }} 
+              key={book.id || book.isbn || index} 
+              book={book} 
               onAddToCart={onAddToCart}
               variant="scroll"
             />
-          )}
+          ))}
         </div>
       </div>
     </section>

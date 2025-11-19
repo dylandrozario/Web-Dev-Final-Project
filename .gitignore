@@ -137,3 +137,13 @@ dist
 # Vite logs files
 vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
+
+# Misc
+.DS_Store
+
+# IDE
+.vscode
+.idea
+*.swp
+*.swo
+*~
