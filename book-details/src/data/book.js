@@ -15,16 +15,16 @@ export const book = {
     "ratings": [1,2,3,3,4,4,4,5,5,5,5,5],
     "reviews": [
         {
-            "author": "John Doe",
+            "author": "Jason",
             "rating": 5,
             "upvotes": 10,
             "comment": "I liked this book."
         },
         {
-            "author": "Jane Doe",
+            "author": "John Doe",
             "rating": 4,
             "upvotes": 20,
-            "comment": "I loved this book!"
+            "comment": "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum."
         },
         {
             "author": "Liana",
@@ -39,10 +39,10 @@ export const book = {
             "comment": "This book was alright."
         },
         {
-            "author": "Jason",
+            "author": "Sarah Smith",
             "rating": 2,
             "upvotes": 15,
-            "comment": "I disiked this book."
+            "comment": "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum."
         },
         {
             "author": "Omar",

@@ -4,10 +4,12 @@
     "heading heading"
     "left right"
     "related related";
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: 1fr 2fr;
   gap: 16px;
+  column-gap: 35px;
   padding: 16px;
-  max-width: 1200px;
+  max-width: none;
+  width: 95%;
   margin: 0 auto;
 }
 
@@ -43,6 +45,8 @@
 .left-column img,
 .right-column img {
   width: 100%;
+  max-width: 500px;
+  margin: 0 auto;
   height: auto;
   object-fit: contain;
 }
@@ -68,5 +72,5 @@
 }
 
 .heading h2 {
-  margin-top: 5;
+  margin-top: 5px;
 }
