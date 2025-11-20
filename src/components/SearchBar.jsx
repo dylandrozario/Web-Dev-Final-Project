@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react'
+import React, { useState, useRef, useEffect } from 'react'
 import './SearchBar.css'
 
 function SearchBar({ value, onChange, results, showResults, onResultClick }) {

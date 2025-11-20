@@ -1,3 +1,4 @@
+import React from 'react'
 import './BookSection.css'
 
 function BookSection({ title, books }) {
