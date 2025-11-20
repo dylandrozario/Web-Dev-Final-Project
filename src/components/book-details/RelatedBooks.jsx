@@ -1,3 +1,4 @@
+import React from 'react';
 import './RelatedBooks.css';
 
 export default function RelatedBooks({ book }) {

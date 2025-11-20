@@ -1,3 +1,5 @@
+import React from 'react';
+
 export default function Modal({ open, onClose, children }) {
     if (!open) return null; // modal is hidden unless open = true
 

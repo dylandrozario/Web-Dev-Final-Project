@@ -1,3 +1,5 @@
+import React from 'react';
+
 export default function StarRating({ rating }) {
   // rating = a number like 4.3 or 3.7
   const fullStars = Math.floor(rating);

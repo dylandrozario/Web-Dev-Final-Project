@@ -1,3 +1,4 @@
+import React from 'react';
 import { book } from '../data/book-details/book.js';
 import BookHeader from '../components/book-details/BookHeader';
 import BookCover from '../components/book-details/BookCover';
