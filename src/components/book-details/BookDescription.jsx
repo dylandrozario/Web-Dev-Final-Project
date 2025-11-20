@@ -1,3 +1,4 @@
+import React from 'react';
 import './BookDescription.css';
 
 export default function BookDescription({ book }) {

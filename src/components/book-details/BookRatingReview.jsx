@@ -1,4 +1,4 @@
-import { useState } from "react"; 
+import React, { useState } from "react"; 
 import Modal from "./Modal.jsx";  
 import ReviewForm from "./ReviewForm.jsx";
 import StarRatingInput from "./StarRatingInput.jsx";
