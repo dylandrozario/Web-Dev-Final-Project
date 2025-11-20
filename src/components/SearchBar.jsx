@@ -44,7 +44,7 @@ function SearchBar({ value, onChange, results, showResults, onResultClick }) {
           onChange={handleInputChange}
           onFocus={() => setIsFocused(true)}
         />
-        <span className="search-icon">🔍</span>
+        <span className="search-icon"></span>
       </div>
       {showResults && results.length > 0 && isFocused && (
         <div className="search-results" ref={resultsRef}>
