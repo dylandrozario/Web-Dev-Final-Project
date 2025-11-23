@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { useParams, useNavigate, useLocation } from 'react-router-dom'
 import { useMemo } from 'react'
 import booksData from '../data/books.json'
@@ -63,6 +64,42 @@ export default function BookDetails() {
       return { library, available, quantity }
     })
   }, [book.isbn])
+
+  // Mock comments data
+  const [comments] = useState([
+    {
+      id: 1,
+      username: 'booklover42',
+      avatar: 'BL',
+      text: 'This is one of my all-time favorites! The character development is incredible.',
+      date: '2 days ago',
+      likes: 12
+    },
+    {
+      id: 2,
+      username: 'readerscorner',
+      avatar: 'RC',
+      text: 'Just finished reading this. The ending was perfect! Highly recommend to anyone who enjoys classic literature.',
+      date: '5 days ago',
+      likes: 8
+    },
+    {
+      id: 3,
+      username: 'literaturefan',
+      avatar: 'LF',
+      text: 'The prose is beautiful and the themes are timeless. A must-read for any book enthusiast.',
+      date: '1 week ago',
+      likes: 15
+    },
+    {
+      id: 4,
+      username: 'bookworm99',
+      avatar: 'BW',
+      text: 'I\'ve read this multiple times and it gets better with each reading. The symbolism is incredible.',
+      date: '2 weeks ago',
+      likes: 20
+    }
+  ])
 
   return (
     <div className="book-details-page">
@@ -162,6 +199,38 @@ export default function BookDetails() {
                 ))}
               </div>
             </div>
+          </div>
+        </div>
+
+        {/* Comments Section */}
+        <div className="comments-section">
+          <div className="comments-header">
+            <h2 className="comments-title">COMMENTS ({comments.length})</h2>
+            <button className="sign-in-comment-btn">SIGN IN TO COMMENT</button>
+          </div>
+
+          <div className="comments-list">
+            {comments.map(comment => (
+              <div key={comment.id} className="comment-item">
+                <div className="comment-user-info">
+                  <div className="comment-avatar">{comment.avatar}</div>
+                  <div className="comment-user-details">
+                    <div className="comment-username">{comment.username}</div>
+                    <div className="comment-date">{comment.date}</div>
+                  </div>
+                </div>
+                <div className="comment-text">{comment.text}</div>
+                <div className="comment-actions">
+                  <button className="comment-like-btn">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+                    </svg>
+                    {comment.likes}
+                  </button>
+                  <button className="comment-reply-btn">Reply</button>
+                </div>
+              </div>
+            ))}
           </div>
         </div>
       </div>
