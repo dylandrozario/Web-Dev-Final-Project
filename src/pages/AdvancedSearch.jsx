@@ -1,4 +1,5 @@
-import { useState, useCallback, useMemo } from 'react'
+import { useState, useCallback, useMemo, useEffect } from 'react'
+import { useLocation } from 'react-router-dom'
 import booksData from '../data/books.json'
 import TrendingSection from '../components/advanced-search/TrendingSection/TrendingSection'
 import LibrarySection from '../components/advanced-search/LibrarySection/LibrarySection'
@@ -6,6 +7,7 @@ import SearchForm from '../components/advanced-search/SearchForm/SearchForm'
 import styles from './AdvancedSearch.module.css'
 
 function AdvancedSearch() {
+  const location = useLocation()
   const [searchTerm, setSearchTerm] = useState('')
   const [filters, setFilters] = useState({
     category: [],
@@ -13,6 +15,21 @@ function AdvancedSearch() {
     age: [],
     availability: []
   })
+
+  // Handle state passed from navigation (e.g., footer links)
+  useEffect(() => {
+    if (location.state) {
+      if (location.state.genre) {
+        setFilters(prev => ({
+          ...prev,
+          category: [location.state.genre.toLowerCase()]
+        }))
+      }
+      if (location.state.sortBy) {
+        // Could implement sorting logic here
+      }
+    }
+  }, [location.state])
 
   // Map books data to include availability and normalize genre
   // Using a seed-based approach for consistent availability values

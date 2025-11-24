@@ -1,21 +1,11 @@
-import { useMemo, useState, useCallback } from 'react'
+import { useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import booksData from '../data/books.json'
 import AIAssistant from '../components/AIAssistant'
-import SearchForm from '../components/advanced-search/SearchForm/SearchForm'
 import './Home.css'
 
 function Home() {
   const navigate = useNavigate()
-  const [searchTerm, setSearchTerm] = useState('')
-
-  // Handle search
-  const handleSearch = useCallback((term) => {
-    setSearchTerm(term)
-    if (term && term.trim() !== '') {
-      navigate('/advanced-search')
-    }
-  }, [navigate])
 
   // Memoize sorted book arrays
   const newReleases = useMemo(() => 
@@ -30,13 +20,11 @@ function Home() {
 
 
 
-  // Generate mock review counts for books (similar to critic/user scores)
+  // Generate mock review counts for books (user scores out of 5)
   const booksWithScores = useMemo(() => {
     return newReleases.map(book => ({
       ...book,
-      criticScore: Math.floor(book.rating * 20), // Convert 5-star to 100 scale
-      criticCount: Math.floor(Math.random() * 15) + 5,
-      userScore: Math.floor(book.rating * 20) + Math.floor(Math.random() * 10) - 5,
+      userScore: parseFloat((book.rating + (Math.random() * 0.4 - 0.2)).toFixed(1)), // Score out of 5
       userCount: Math.floor(Math.random() * 500) + 50
     }))
   }, [newReleases])
@@ -46,11 +34,6 @@ function Home() {
       <div className="home-content">
         {/* AI Floating Button */}
         <AIAssistant />
-
-        {/* Search Bar Section */}
-        <section className="home-search-section">
-          <SearchForm onSearch={handleSearch} />
-        </section>
 
         {/* NEW RELEASES Section - AOTY Style */}
         <section className="new-releases-section">
@@ -91,11 +74,7 @@ function Home() {
                   <h3 className="book-title-aoty">{book.title}</h3>
                   <div className="book-scores-aoty">
                     <div className="score-line">
-                      <span className="score-value">{book.criticScore}</span>
-                      <span className="score-label">critic score ({book.criticCount})</span>
-                    </div>
-                    <div className="score-line">
-                      <span className="score-value">{book.userScore}</span>
+                      <span className="score-value">{book.userScore}/5</span>
                       <span className="score-label">user score ({book.userCount.toLocaleString()})</span>
                     </div>
                   </div>
@@ -105,10 +84,10 @@ function Home() {
           </div>
         </section>
 
-        {/* NEWSWORTHY Section */}
+        {/* RESOURCES Section */}
         <section className="newsworthy-section">
           <div className="section-header-aoty">
-            <h2 className="section-title-aoty">NEWSWORTHY</h2>
+            <h2 className="section-title-aoty">RESOURCES</h2>
             <button className="header-link" onClick={() => navigate('/resources')}>
               VIEW ALL
             </button>
@@ -116,44 +95,50 @@ function Home() {
           <div className="newsworthy-grid">
             {[
               {
-                image: '/images/books/gatsby.svg',
-                source: 'library.edu',
-                title: 'New Research Workshop: Navigating Digital Archives and Special Collections',
+                color: '#4A90E2',
+                icon: '📚',
+                title: 'Digital Archives & Special Collections',
+                description: 'Access historical documents, rare manuscripts, and archival materials online',
                 likes: 124,
                 comments: 23
               },
               {
-                image: '/images/books/mockingbird.svg',
-                source: 'library.edu',
-                title: 'Author Spotlight: Celebrating Classic Literature in Our Collection',
+                color: '#50C878',
+                icon: '🔍',
+                title: 'Research Databases',
+                description: 'Comprehensive academic databases for scholarly research and articles',
                 likes: 89,
                 comments: 15
               },
               {
-                image: '/images/books/1984.svg',
-                source: 'library.edu',
-                title: 'New Digital Resources: Access Thousands of E-Books Online',
+                color: '#FF6B6B',
+                icon: '📖',
+                title: 'E-Book Collection',
+                description: 'Thousands of digital books available for instant download and reading',
                 likes: 156,
                 comments: 31
               },
               {
-                image: '/images/books/LOTR.jpg',
-                source: 'library.edu',
-                title: 'Book Club Meeting: Join Our Monthly Fantasy Literature Discussion',
+                color: '#9B59B6',
+                icon: '🖥️',
+                title: 'Study Spaces & Equipment',
+                description: 'Reserve study rooms, access computers, and borrow technology equipment',
                 likes: 67,
                 comments: 12
               },
               {
-                image: '/images/books/pride.svg',
-                source: 'library.edu',
-                title: 'Library Hours Extended: Now Open Until 10 PM on Weekdays',
+                color: '#F39C12',
+                icon: '📝',
+                title: 'Research Guides & Tutorials',
+                description: 'Expert help and step-by-step guides for your academic research projects',
                 likes: 203,
                 comments: 45
               },
               {
-                image: '/images/books/hobbit.jpg',
-                source: 'library.edu',
-                title: 'New Acquisitions: Latest Bestsellers Now Available for Checkout',
+                color: '#1ABC9C',
+                icon: '📦',
+                title: 'Interlibrary Loan Services',
+                description: 'Request books and materials from other libraries across the network',
                 likes: 178,
                 comments: 28
               }
@@ -163,12 +148,13 @@ function Home() {
                 className="newsworthy-card"
                 onClick={() => navigate('/resources')}
               >
-                <div className="newsworthy-image">
-                  <img src={item.image} alt={item.title} />
+                <div className="newsworthy-image" style={{ backgroundColor: item.color }}>
+                  <div className="resource-icon">{item.icon}</div>
                 </div>
                 <div className="newsworthy-content">
-                  <p className="newsworthy-source">{item.source}</p>
+                  <p className="newsworthy-source">Library Resources</p>
                   <h3 className="newsworthy-title">{item.title}</h3>
+                  <p className="newsworthy-description">{item.description}</p>
                   <div className="newsworthy-stats">
                     <span className="stat-item">
                       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -261,35 +247,9 @@ function Home() {
 
           <div className="anticipated-sidebar">
             <div className="sidebar-list">
-              <h3 className="sidebar-title">CRITICS' BEST</h3>
-              {trendingBooks.slice(0, 5).map((book, index) => (
-                <div 
-                  key={book.isbn || index} 
-                  className="sidebar-item"
-                  onClick={() => navigate(`/book/isbn/${book.isbn}`)}
-                >
-                  <div className="sidebar-image">
-                    {book.image ? (
-                      <img src={book.image} alt={book.title} />
-                    ) : (
-                      <div className="sidebar-placeholder">
-                        <span>{book.title.charAt(0)}</span>
-                      </div>
-                    )}
-                  </div>
-                  <div className="sidebar-content">
-                    <p className="sidebar-artist">{book.author}</p>
-                    <p className="sidebar-album">{book.title}</p>
-                  </div>
-                  <div className="sidebar-rating">{Math.floor(book.rating * 20)}</div>
-                </div>
-              ))}
-            </div>
-
-            <div className="sidebar-list">
               <h3 className="sidebar-title">USERS' BEST</h3>
               {trendingBooks.slice(0, 5).map((book, index) => {
-                const userRating = Math.floor(book.rating * 20) + Math.floor(Math.random() * 5) - 2
+                const userRating = parseFloat((book.rating + (Math.random() * 0.4 - 0.2)).toFixed(1))
                 return (
                   <div 
                     key={book.isbn || index} 
@@ -309,7 +269,7 @@ function Home() {
                       <p className="sidebar-artist">{book.author}</p>
                       <p className="sidebar-album">{book.title}</p>
                     </div>
-                    <div className="sidebar-rating">{Math.max(0, Math.min(100, userRating))}</div>
+                    <div className="sidebar-rating">{userRating}/5</div>
                   </div>
                 )
               })}
@@ -369,24 +329,24 @@ function Home() {
               {
                 book: booksData[0],
                 reviewer: 'BookLover42',
-                rating: 95,
-                review: 'One day I\'m gonna tell my grandkids that I was alive when this masterpiece was published and they weren\'t. This book captures the essence of its era so perfectly. The prose is absolutely stunning, and the characters feel so real. It\'s hard to believe this was written so long ago - it feels timeless. The author just can\'t seem to miss with their storytelling. These themes, with their depth and complexity... read more',
+                rating: 4.8,
+                review: 'One day I\'m gonna tell my grandkids that I was alive when this masterpiece was published and they weren\'t. This book captures the essence of its era so perfectly. The prose is absolutely stunning, and the characters feel so real. It\'s hard to believe this was written so long ago - it feels timeless.',
                 likes: 358,
                 comments: 29
               },
               {
                 book: booksData[1],
                 reviewer: 'LiteraryFan',
-                rating: 100,
-                review: '"Oh yeah we\'re incredible at this genre too" - this author, probably. Accept it or not, this is one of the most astonishing and original works to come out of this period. You don\'t have to even like the style to know that it is at this point in literary history that their creative genius was overflowing beyond what seemed "imaginable." And although we aren\'t getting a sequel, what they have given us is more than we even deserve... read more',
+                rating: 5.0,
+                review: 'This is one of the most astonishing and original works to come out of this period. You don\'t have to even like the style to know that it is at this point in literary history that their creative genius was overflowing beyond what seemed "imaginable."',
                 likes: 244,
                 comments: 4
               },
               {
                 book: booksData[2],
                 reviewer: 'ClassicReader',
-                rating: 90,
-                review: 'AOTY GPT Please generate me a review for this classic novel that will get a lot of likes. BZZT- BZZT- GENERATING. ADDING LITERARY ANALYSIS. BZZT- BZZT- ADDING CULTURAL REFERENCE. BZZT- BZZT- YOUR REVIEW IS: "Scaring the traditionalists." This book broke boundaries and continues to resonate with readers today. The social commentary is sharp, the narrative is compelling, and the impact is undeniable.',
+                rating: 4.5,
+                review: 'This book broke boundaries and continues to resonate with readers today. The social commentary is sharp, the narrative is compelling, and the impact is undeniable. A must-read for anyone interested in classic literature.',
                 likes: 1783,
                 comments: 93
               }
@@ -404,18 +364,7 @@ function Home() {
                 <div className="review-content">
                   <div className="review-header">
                     <div className="review-rating-section">
-                      <div className="review-rating-bar">
-                        <div 
-                          className="review-rating-fill" 
-                          style={{ width: `${review.rating}%` }}
-                        ></div>
-                        <div className="review-rating-checkmark">
-                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#28a745" strokeWidth="3">
-                            <polyline points="20 6 9 17 4 12"/>
-                          </svg>
-                        </div>
-                      </div>
-                      <span className="review-rating-value">{review.rating}</span>
+                      <span className="review-rating-value">{review.rating}/5</span>
                     </div>
                     {review.reviewer && (
                       <span className="review-reviewer">{review.reviewer}</span>
@@ -488,17 +437,13 @@ function Home() {
               {
                 yearsAgo: 10,
                 book: booksData.find(b => b.title === "The Great Gatsby") || booksData[0],
-                criticScore: 74,
-                criticCount: 44,
-                userScore: 76,
+                userScore: 4.2,
                 userCount: 3096
               },
               {
                 yearsAgo: 30,
                 book: booksData.find(b => b.title === "1984") || booksData[2],
-                criticScore: 60,
-                criticCount: 1,
-                userScore: 79,
+                userScore: 4.5,
                 userCount: 139
               }
             ].map((item, index) => (
@@ -526,22 +471,11 @@ function Home() {
                         <div className="on-this-day-score-bar">
                           <div 
                             className="on-this-day-score-fill" 
-                            style={{ width: `${item.criticScore}%` }}
+                            style={{ width: `${(item.userScore / 5) * 100}%` }}
                           ></div>
                         </div>
                         <span className="on-this-day-score-text">
-                          {item.criticScore} critic score ({item.criticCount})
-                        </span>
-                      </div>
-                      <div className="on-this-day-score-line">
-                        <div className="on-this-day-score-bar">
-                          <div 
-                            className="on-this-day-score-fill" 
-                            style={{ width: `${item.userScore}%` }}
-                          ></div>
-                        </div>
-                        <span className="on-this-day-score-text">
-                          {item.userScore} user score ({item.userCount.toLocaleString()})
+                          {item.userScore}/5 user score ({item.userCount.toLocaleString()})
                         </span>
                       </div>
                     </div>
@@ -627,11 +561,15 @@ function Home() {
             {/* Middle: Best Books */}
             <div className="bottom-column">
               <h3 className="bottom-column-title">BEST BOOKS OF 2025</h3>
-              <div className="publications-grid">
-                {['PITCHFORK', 'THE NEW YORK TIMES', 'THE GUARDIAN', 'NPR', 'BOOKLIST', 'PUBLISHERS WEEKLY'].map((pub, index) => (
-                  <div key={index} className="publication-logo">
+              <div className="publication-links">
+                {['THE NEW YORK TIMES', 'THE GUARDIAN', 'NPR', 'BOOKLIST', 'PUBLISHERS WEEKLY'].map((pub, index) => (
+                  <button
+                    key={index}
+                    className="publication-link-btn"
+                    onClick={() => navigate(`/book-list/${pub.toLowerCase().replace(/\s+/g, '-')}`)}
+                  >
                     {pub}
-                  </div>
+                  </button>
                 ))}
               </div>
             </div>
@@ -660,27 +598,27 @@ function Home() {
             <div className="footer-column">
               <h4 className="footer-title">BOOKS</h4>
               <ul className="footer-links">
-                <li><button onClick={() => navigate('/advanced-search')}>Highest Rated</button></li>
-                <li><button onClick={() => navigate('/advanced-search')}>Overview</button></li>
-                <li><button onClick={() => navigate('/advanced-search')}>On This Day</button></li>
-                <li><button onClick={() => navigate('/advanced-search')}>New Releases</button></li>
+                <li><button onClick={() => navigate('/book-reviews')}>Highest Rated</button></li>
+                <li><button onClick={() => navigate('/book-reviews')}>Overview</button></li>
+                <li><button onClick={() => navigate('/')}>On This Day</button></li>
+                <li><button onClick={() => navigate('/')}>New Releases</button></li>
               </ul>
             </div>
             <div className="footer-column">
               <h4 className="footer-title">AUTHORS</h4>
               <ul className="footer-links">
                 <li><button onClick={() => navigate('/advanced-search')}>Browse</button></li>
-                <li><button onClick={() => navigate('/advanced-search')}>Popular</button></li>
-                <li><button onClick={() => navigate('/advanced-search')}>New</button></li>
+                <li><button onClick={() => navigate('/advanced-search', { state: { sortBy: 'popular' } })}>Popular</button></li>
+                <li><button onClick={() => navigate('/advanced-search', { state: { sortBy: 'new' } })}>New</button></li>
               </ul>
             </div>
             <div className="footer-column">
               <h4 className="footer-title">GENRE</h4>
               <ul className="footer-links">
-                <li><button onClick={() => navigate('/advanced-search')}>Fiction</button></li>
-                <li><button onClick={() => navigate('/advanced-search')}>Fantasy</button></li>
-                <li><button onClick={() => navigate('/advanced-search')}>Romance</button></li>
-                <li><button onClick={() => navigate('/advanced-search')}>Mystery</button></li>
+                <li><button onClick={() => navigate('/advanced-search', { state: { genre: 'Fiction' } })}>Fiction</button></li>
+                <li><button onClick={() => navigate('/advanced-search', { state: { genre: 'Fantasy' } })}>Fantasy</button></li>
+                <li><button onClick={() => navigate('/advanced-search', { state: { genre: 'Romance' } })}>Romance</button></li>
+                <li><button onClick={() => navigate('/advanced-search', { state: { genre: 'Mystery' } })}>Mystery</button></li>
               </ul>
             </div>
             <div className="footer-column">
@@ -694,10 +632,10 @@ function Home() {
             <div className="footer-column">
               <h4 className="footer-title">SITE DETAILS</h4>
               <ul className="footer-links">
-                <li><button>FAQ</button></li>
-                <li><button>About</button></li>
-                <li><button>Contact</button></li>
-                <li><button>Privacy</button></li>
+                <li><button onClick={() => navigate('/faq')}>FAQ</button></li>
+                <li><button onClick={() => navigate('/about')}>About</button></li>
+                <li><button onClick={() => navigate('/contact')}>Contact</button></li>
+                <li><button onClick={() => navigate('/privacy')}>Privacy</button></li>
               </ul>
             </div>
           </div>

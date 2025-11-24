@@ -527,22 +527,6 @@ function BookReviews() {
               </div>
             </div>
 
-            {/* Support Section */}
-            <div className="sidebar-section support-section">
-              <h3 className="sidebar-title">Support Library Catalog</h3>
-              <p className="sidebar-description">
-                Support Library Catalog by becoming a subscriber to access additional chart features, including:
-              </p>
-              <ul className="support-list">
-                <li>Adjust popularity weighting</li>
-                <li>Filter by minimum or maximum number of ratings</li>
-                <li>Filter by age of users who rated</li>
-                <li>See 1.5 times as many results per chart (Standard) or 2x (Select)</li>
-                <li>Access charts that are updated daily (Select)</li>
-              </ul>
-              <button className="subscription-btn">View subscription options</button>
-            </div>
-
             {/* Saved Charts Section */}
             <div className="sidebar-section">
               <h3 className="sidebar-title">Saved charts</h3>
