@@ -36,7 +36,10 @@ export const APP_CONFIG = {
   COMMENTS_MIN: 50,
   COMMENTS_MAX: 550,
   VIEWS_MIN: 200,
-  VIEWS_MAX: 2200
+  VIEWS_MAX: 2200,
+
+  // Authentication
+  AUTH_STORAGE_KEY: 'libraryCatalogAuthUser'
 }
 
 export default APP_CONFIG

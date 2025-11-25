@@ -1,0 +1,24 @@
+[
+  {
+    "id": "reader-001",
+    "name": "Avery Harper",
+    "email": "avery@librarycatalog.ai",
+    "password": "catalog2025",
+    "role": "Collections Lead"
+  },
+  {
+    "id": "reader-002",
+    "name": "Mei Alvarez",
+    "email": "mei@librarycatalog.ai",
+    "password": "fictionfocus",
+    "role": "Recommendations Editor"
+  },
+  {
+    "id": "reader-003",
+    "name": "Noah Spencer",
+    "email": "noah@librarycatalog.ai",
+    "password": "researchhub",
+    "role": "Research Specialist"
+  }
+]
+

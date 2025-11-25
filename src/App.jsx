@@ -12,6 +12,7 @@ import SignIn from './pages/auth'
 import { About, FAQ, Contact, Privacy } from './pages/info'
 import BookList from './pages/book-list'
 import booksData from './data/books/books.json'
+import { AuthProvider } from './context/AuthContext'
 import './App.css'
 
 // Component to check if book exists and render appropriate component
@@ -34,25 +35,27 @@ function BookDetailsWithFallback() {
 function App() {
   return (
     <Router>
-      <div className="App">
-        <Navbar />
-        <Routes>
-          <Route path="/" element={<Home />} />
-          <Route path="/advanced-search" element={<AdvancedSearch />} />
-          <Route path="/book/:id" element={<BookDetails />} />
-          <Route path="/book-details" element={<BookDetails />} />
-          <Route path="/book/isbn/:isbn" element={<BookDetailsWithFallback />} />
-          <Route path="/book-reviews" element={<BookReviews />} />
-          <Route path="/resources" element={<ResourcesPage />} />
-          <Route path="/my-library" element={<MyLibrary />} />
-          <Route path="/sign-in" element={<SignIn />} />
-          <Route path="/about" element={<About />} />
-          <Route path="/faq" element={<FAQ />} />
-          <Route path="/contact" element={<Contact />} />
-          <Route path="/privacy" element={<Privacy />} />
-          <Route path="/book-list/:listType" element={<BookList />} />
-        </Routes>
-      </div>
+      <AuthProvider>
+        <div className="App">
+          <Navbar />
+          <Routes>
+            <Route path="/" element={<Home />} />
+            <Route path="/advanced-search" element={<AdvancedSearch />} />
+            <Route path="/book/:id" element={<BookDetails />} />
+            <Route path="/book-details" element={<BookDetails />} />
+            <Route path="/book/isbn/:isbn" element={<BookDetailsWithFallback />} />
+            <Route path="/book-reviews" element={<BookReviews />} />
+            <Route path="/resources" element={<ResourcesPage />} />
+            <Route path="/my-library" element={<MyLibrary />} />
+            <Route path="/sign-in" element={<SignIn />} />
+            <Route path="/about" element={<About />} />
+            <Route path="/faq" element={<FAQ />} />
+            <Route path="/contact" element={<Contact />} />
+            <Route path="/privacy" element={<Privacy />} />
+            <Route path="/book-list/:listType" element={<BookList />} />
+          </Routes>
+        </div>
+      </AuthProvider>
     </Router>
   )
 }
