@@ -4,6 +4,8 @@ import TrendingSection from '../../components/advanced-search/TrendingSection/Tr
 import LibrarySection from '../../components/advanced-search/LibrarySection/LibrarySection'
 import SearchForm from '../../components/advanced-search/SearchForm/SearchForm'
 import { useBooks } from '../../context/BooksContext'
+import { naturalLanguageSearch, shouldUseNLSearch, initializeSearchIndex } from '../../utils/nlSearch'
+import { generateBookDescription } from '../../utils/bookUtils'
 import styles from './AdvancedSearch.module.css'
 
 function AdvancedSearch() {
@@ -35,7 +37,7 @@ function AdvancedSearch() {
   // Map books data to include availability and normalize genre
   // Using a seed-based approach for consistent availability values
   const allBooks = useMemo(() => {
-    return booksData.map((book, index) => {
+    const mapped = booksData.map((book, index) => {
       // Generate consistent availability based on index (not random)
       const seed = index * 7 + 3
       const availability = (seed % 5) + 1
@@ -49,9 +51,18 @@ function AdvancedSearch() {
         availability, // Consistent mock availability
         rating: book.rating,
         releaseDate: book.releaseDate,
-        image: book.image
+        image: book.image,
+        publisher: book.publisher,
+        description: book.description || generateBookDescription(book)
       }
     })
+    
+    // Initialize search index when books are loaded
+    if (mapped.length > 0) {
+      initializeSearchIndex(mapped)
+    }
+    
+    return mapped
   }, [booksData])
 
   const handleSearch = useCallback((term) => {
@@ -77,26 +88,76 @@ function AdvancedSearch() {
     })
   }, [])
 
-  // Filter books based on search term and filters - optimized single pass
+  // Filter books based on search term and filters - optimized with NL search
   const filteredBooks = useMemo(() => {
     const searchTermTrimmed = searchTerm.trim()
-    const lowerSearch = searchTermTrimmed ? searchTermTrimmed.toLowerCase() : ''
     const hasCategoryFilter = filters.category.length > 0
     const hasAvailabilityFilter = filters.availability.length > 0
     const hasInStock = filters.availability.includes('in-stock')
     const hasNotInStock = filters.availability.includes('not-in-stock')
 
-    // Single pass filter for better performance
-    return allBooks.filter(book => {
-      // Search filter
-      if (lowerSearch) {
-        const matchesSearch = 
+    // Determine search results
+    let searchResults = allBooks
+    
+    if (searchTermTrimmed) {
+      // Use natural language search if appropriate
+      if (shouldUseNLSearch(searchTermTrimmed)) {
+        const nlResults = naturalLanguageSearch(searchTermTrimmed, allBooks)
+        // If NL search found results, use them; otherwise fall back to simple search
+        if (nlResults.length > 0) {
+          searchResults = nlResults
+        } else {
+          // Fallback to simple search
+          const lowerSearch = searchTermTrimmed.toLowerCase()
+          searchResults = allBooks.filter(book => 
+            book.title.toLowerCase().includes(lowerSearch) ||
+            book.author.toLowerCase().includes(lowerSearch) ||
+            book.isbn.includes(searchTermTrimmed)
+          )
+        }
+      } else {
+        // Simple exact/partial match for short queries
+        const lowerSearch = searchTermTrimmed.toLowerCase()
+        searchResults = allBooks.filter(book => 
           book.title.toLowerCase().includes(lowerSearch) ||
           book.author.toLowerCase().includes(lowerSearch) ||
           book.isbn.includes(searchTermTrimmed)
-        if (!matchesSearch) return false
+        )
       }
+      
+      // Additional validation: ensure results actually contain the search term
+      // This filters out any false positives from fuzzy matching
+      // Description is now a primary search field
+      const lowerSearch = searchTermTrimmed.toLowerCase()
+      const searchWords = lowerSearch.split(/\s+/).filter(w => w.length > 0)
+      
+      searchResults = searchResults.filter(book => {
+        const title = (book.title || '').toLowerCase()
+        const author = (book.author || '').toLowerCase()
+        const genre = (book.genre || '').toLowerCase()
+        const description = (book.description || '').toLowerCase()
+        const combined = `${title} ${author} ${genre} ${description}`.toLowerCase()
+        
+        // For single word queries, check if it appears in any field including description
+        if (searchWords.length === 1) {
+          return title.includes(searchWords[0]) || 
+                 author.includes(searchWords[0]) || 
+                 genre.includes(searchWords[0]) ||
+                 description.includes(searchWords[0])
+        }
+        
+        // For multi-word queries, at least one word must match in any field including description
+        return searchWords.some(word => 
+          description.includes(word) ||
+          title.includes(word) || 
+          author.includes(word) || 
+          genre.includes(word)
+        )
+      })
+    }
 
+    // Apply filters to search results
+    return searchResults.filter(book => {
       // Category filter
       if (hasCategoryFilter) {
         const bookGenre = book.genre || 'fiction'
