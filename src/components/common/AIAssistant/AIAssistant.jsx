@@ -1,12 +1,25 @@
 import { useState, useMemo, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { GoogleGenerativeAI } from '@google/generative-ai'
 import './AIAssistant.css'
 import { useBooks } from '../../../context/BooksContext'
+import userReviewsData from '../../../data/reviews/userReviews.json'
+import { generateBookDescription } from '../../../utils/bookUtils'
 
-const GEMINI_MODEL = 'gemini-1.5-flash-latest'
-const GEMINI_ENDPOINT = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`
 const GEMINI_API_KEY = import.meta.env.VITE_GEMINI_API_KEY
-// TODO: Create a local .env file and set VITE_GEMINI_API_KEY with your Gemini key. Never commit the real key.
+
+// Initialize the Gemini AI client
+const getGenAI = () => {
+  if (!GEMINI_API_KEY || GEMINI_API_KEY.trim() === '') {
+    return null
+  }
+  return new GoogleGenerativeAI(GEMINI_API_KEY)
+}
+
+// Debug: Log if API key is loaded (only in development)
+if (import.meta.env.DEV) {
+  console.log('Gemini API Key loaded:', GEMINI_API_KEY ? 'Yes (hidden)' : 'No - check .env file')
+}
 
 const NAV_OPTIONS = [
   { label: 'home', path: '/' },
@@ -40,18 +53,106 @@ function AIAssistant() {
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState('')
 
-  const siteContext = useMemo(() => {
-    const highlighted = books.slice(0, 5).map(book => `${book.title} by ${book.author} (${book.genre || 'fiction'})`)
-    return [
-      'You are the BC Library AI assistant.',
-      'You help users find books, reviews, and library resources.',
-      'Key experiences: New Releases, Highly Anticipated Books, Book Reviews, Advanced Search, Resources.',
-      'If navigation is helpful, respond with JSON only, e.g.',
-      '{"reply":"Heading to Advanced Search for genre filters.","action":{"type":"navigate","target":"/advanced-search"}}',
-      'Only use the routes provided by the site.',
-      highlighted.length ? `Featured books: ${highlighted.join(' | ')}` : ''
-    ].join('\n')
+  // Create enriched book data with reviews and descriptions
+  const enrichedBooks = useMemo(() => {
+    return books.map(book => {
+      const reviews = userReviewsData.filter(r => r.bookIsbn === book.isbn)
+      const avgRating = reviews.length > 0 
+        ? reviews.reduce((sum, r) => sum + (r.rating || 0), 0) / reviews.length 
+        : book.rating || 0
+      const totalLikes = reviews.reduce((sum, r) => sum + (r.likes || 0), 0)
+      const description = book.description || generateBookDescription(book)
+      const reviewTexts = reviews.map(r => r.review).join(' ')
+      
+      return {
+        ...book,
+        description,
+        avgRating: parseFloat(avgRating.toFixed(1)),
+        reviewCount: reviews.length,
+        totalLikes,
+        reviewTexts,
+        reviews: reviews.map(r => ({
+          rating: r.rating,
+          text: r.review,
+          likes: r.likes
+        }))
+      }
+    })
   }, [books])
+
+  const siteContext = useMemo(() => {
+    // Create detailed book information for recommendations
+    const bookDetails = enrichedBooks.map(book => {
+      const topReviews = book.reviews.slice(0, 2).map(r => r.text).join(' | ')
+      return `Title: ${book.title} | Author: ${book.author} | Genre: ${book.genre || 'Fiction'} | Rating: ${book.avgRating}/5 | Pages: ${book.pages || 'N/A'} | Publisher: ${book.publisher || 'N/A'} | Description: ${book.description} | Reviews: ${topReviews} | ISBN: ${book.isbn}`
+    }).join('\n')
+    
+    return [
+      'You are the BC Library Catalog AI assistant. You ONLY answer questions about this website and its features.',
+      '',
+      'CRITICAL RULES:',
+      '1. If user says "take me to X" or "go to X" where X is a page name → Navigate to that page',
+      '2. If user says "what is X" or "tell me about X" → Provide explanation in chat (do NOT navigate)',
+      '3. If user says "take me to X book" or "show me X book" where X is a book title → Navigate to that book\'s details page',
+      '4. If user asks to "find a book", "recommend a book", "I want a book about X", "suggest a book", "help me find", or similar → Recommend books based on their preferences, matching by genre, rating, reviews, description, and specifications',
+      '5. If the request is not about this website or cannot be understood → Respond with "Sorry, I couldn\'t understand that. I can only help with questions about this website, its pages, and books available here."',
+      '',
+      'BOOK RECOMMENDATION INSTRUCTIONS:',
+      'When recommending books, analyze the user\'s request for:',
+      '- Genre preferences (Fiction, Fantasy, Romance, Dystopian, etc.)',
+      '- Rating preferences (highly rated, top rated, etc.)',
+      '- Themes or topics mentioned (love, adventure, dystopia, society, etc.)',
+      '- Book specifications (length, publisher, author style, etc.)',
+      '- Review content (what reviewers liked about the book)',
+      '',
+      'Match books by:',
+      '1. Genre match (exact or similar)',
+      '2. Rating (prefer higher ratings)',
+      '3. Review content (keywords in reviews)',
+      '4. Description keywords (themes, topics)',
+      '5. Specifications (pages, publisher, etc.)',
+      '',
+      'When recommending, provide:',
+      '- 1-3 book recommendations',
+      '- Brief explanation of why each book matches',
+      '- Option to navigate to the book details page',
+      '',
+      'Available Pages and Routes:',
+      '- Home (/)',
+      '- Advanced Search (/advanced-search)',
+      '- Book Reviews (/book-reviews)',
+      '- Resources (/resources)',
+      '- My Library (/my-library)',
+      '- Sign In (/sign-in)',
+      '- Book List/Rankings (/book-list/2025)',
+      '- About (/about)',
+      '- FAQ (/faq)',
+      '- Contact (/contact)',
+      '- Privacy (/privacy)',
+      '',
+      'Page Descriptions:',
+      '- Home: Browse new releases and featured books',
+      '- Advanced Search: Search books by title, author, genre, and more',
+      '- Book Reviews: View and read book reviews with ratings',
+      '- Resources: Access BC library resources and services',
+      '- My Library: View saved books, favorites, ratings, and reviews (requires sign-in with @bc.edu email)',
+      '- Book List/Rankings: View highest rated books ranked by score',
+      '',
+      'Available Books with Details:',
+      bookDetails || 'No books available',
+      '',
+      'Response Format: Always respond with JSON:',
+      '{"reply":"your response text","action":{"type":"navigate","target":"/path"} (optional), "bookIsbn":"isbn" (optional for book navigation), "recommendations":[{"title":"Book Title","isbn":"isbn","reason":"why it matches"}] (optional for recommendations)}',
+      '',
+      'Examples:',
+      '- User: "take me to book reviews" → {"reply":"Taking you to Book Reviews.","action":{"type":"navigate","target":"/book-reviews"}}',
+      '- User: "what is advanced search" → {"reply":"Advanced Search is a page where you can search books by title, author, genre, and more. It has filters to help you find exactly what you\'re looking for."}',
+      '- User: "take me to The Great Gatsby book" → {"reply":"Taking you to The Great Gatsby.","action":{"type":"navigate","target":"/book/isbn/978-0-7432-7356-5"},"bookIsbn":"978-0-7432-7356-5"}',
+      '- User: "find me a fantasy book" → {"reply":"Based on your interest in fantasy, I recommend: 1) The Lord of the Rings (Rating: 4.9/5) - An epic fantasy adventure. 2) The Hobbit (Rating: 4.8/5) - A classic fantasy tale. Would you like to see details for any of these?","recommendations":[{"title":"The Lord of the Rings","isbn":"978-0-544-00035-4","reason":"High-rated fantasy epic"},{"title":"The Hobbit","isbn":"978-0-547-92822-7","reason":"Classic fantasy adventure"}]}',
+      '- User: "I want a highly rated book about society" → {"reply":"Based on your preferences, I recommend: 1) To Kill a Mockingbird (Rating: 4.8/5) - Explores themes of justice and society. 2) 1984 (Rating: 4.7/5) - Dystopian social commentary. Would you like to see details?","recommendations":[{"title":"To Kill a Mockingbird","isbn":"978-0-06-112008-4","reason":"High rating, social themes"},{"title":"1984","isbn":"978-0-452-28423-4","reason":"Social commentary, highly rated"}]}',
+      '- User: "what is the weather" → {"reply":"Sorry, I couldn\'t understand that. I can only help with questions about this website, its pages, and books available here."}'
+    ].join('\n')
+  }, [enrichedBooks])
 
   const toggleChat = () => {
     setIsOpen(prev => !prev)
@@ -66,12 +167,57 @@ function AIAssistant() {
     navigate(target)
   }, [navigate])
 
-  const interpretNavigation = useCallback((replyText, action) => {
+  const findBookByTitle = useCallback((title) => {
+    if (!title || !books || books.length === 0) return null
+    
+    const lowerTitle = title.toLowerCase().trim()
+    
+    // Try exact match first
+    let book = books.find(b => b.title.toLowerCase() === lowerTitle)
+    if (book) return book
+    
+    // Try partial match (title contains search or search contains title)
+    book = books.find(b => {
+      const bookTitleLower = b.title.toLowerCase()
+      return bookTitleLower.includes(lowerTitle) || lowerTitle.includes(bookTitleLower)
+    })
+    if (book) return book
+    
+    // Try matching by words (for multi-word titles)
+    const titleWords = lowerTitle.split(/\s+/).filter(w => w.length > 1)
+    if (titleWords.length > 0) {
+      book = books.find(b => {
+        const bookTitleLower = b.title.toLowerCase()
+        // Check if all significant words match
+        const matchingWords = titleWords.filter(word => bookTitleLower.includes(word))
+        return matchingWords.length >= Math.min(titleWords.length, 2) // At least 2 words or all if less
+      })
+      if (book) return book
+    }
+    
+    // Special case: if title is just a number (like "1984"), try to match it
+    if (/^\d+$/.test(lowerTitle)) {
+      book = books.find(b => b.title.toLowerCase().includes(lowerTitle))
+      if (book) return book
+    }
+    
+    return null
+  }, [books])
+
+  const interpretNavigation = useCallback((replyText, action, bookIsbn) => {
+    // If bookIsbn is provided, navigate to book details
+    if (bookIsbn) {
+      handleNavigation(`/book/isbn/${bookIsbn}`)
+      return
+    }
+
+    // If action is provided, use it
     if (action?.type === 'navigate' && action.target) {
       handleNavigation(action.target)
       return
     }
 
+    // Fallback: try to extract navigation from text
     const navMatch = replyText.match(/NAVIGATE:([^\s]+)/i)
     if (navMatch?.[1]) {
       handleNavigation(navMatch[1])
@@ -86,69 +232,200 @@ function AIAssistant() {
   }, [handleNavigation])
 
   const requestAssistant = useCallback(async (userPrompt) => {
-    if (!GEMINI_API_KEY) {
+    const genAI = getGenAI()
+    if (!genAI) {
       appendMessage({
         role: 'bot',
-        text: 'Add your Gemini API key to a local .env file as VITE_GEMINI_API_KEY to enable the AI assistant.'
+        text: 'Gemini API key is not configured. Please add VITE_GEMINI_API_KEY to your .env file and restart the dev server.'
       })
+      console.error('Gemini API key is missing. Check .env file and restart dev server.')
       return
     }
 
     setIsLoading(true)
     setError('')
     try {
-      const body = {
-        contents: [
-          {
-            role: 'user',
-            parts: [
-              {
-                text: `${siteContext}\n\nUser question: "${userPrompt}"\nRespond with JSON.`
-              }
-            ]
+      // Pre-process user prompt to detect patterns
+      const lowerPrompt = userPrompt.toLowerCase()
+      const isNavigationRequest = /take me to|go to|navigate to|show me|open/i.test(userPrompt)
+      const isQuestionRequest = /what is|tell me about|explain|what's/i.test(userPrompt)
+      const isRecommendationRequest = /find.*book|recommend.*book|suggest.*book|want.*book|looking for.*book|help.*find|book.*about/i.test(userPrompt)
+      
+      // Try to extract book title - check if prompt contains a book title
+      let bookIsbn = null
+      let detectedBook = null
+      
+      // First, try to find if the prompt mentions a book title (even without the word "book")
+      // Check all books to see if any title is mentioned in the prompt
+      for (const book of books) {
+        const bookTitleLower = book.title.toLowerCase()
+        // Check if book title appears in the prompt (exact match or contains)
+        if (lowerPrompt.includes(bookTitleLower)) {
+          detectedBook = book
+          bookIsbn = book.isbn
+          break
+        }
+        // Check if any significant word from book title appears in prompt
+        const bookWords = bookTitleLower.split(/\s+/).filter(w => w.length > 2)
+        const promptWords = lowerPrompt.split(/\s+/)
+        // Check if all significant words from a short title are in the prompt
+        if (bookWords.length <= 3 && bookWords.every(word => promptWords.some(pw => pw.includes(word) || word.includes(pw)))) {
+          detectedBook = book
+          bookIsbn = book.isbn
+          break
+        }
+        // Special case: if book title is just a number (like "1984"), check if that number is in prompt
+        if (/^\d+$/.test(bookTitleLower) && lowerPrompt.includes(bookTitleLower)) {
+          detectedBook = book
+          bookIsbn = book.isbn
+          break
+        }
+      }
+      
+      // If no book found yet, try explicit book request patterns
+      if (!detectedBook && /book/i.test(userPrompt)) {
+        // Extract potential book title (everything after "take me to" or "show me" and before "book")
+        const bookMatch = userPrompt.match(/(?:take me to|show me|find|go to|open)\s+(.+?)\s+book/i)
+        if (bookMatch && bookMatch[1]) {
+          const potentialTitle = bookMatch[1].trim()
+          const foundBook = findBookByTitle(potentialTitle)
+          if (foundBook) {
+            detectedBook = foundBook
+            bookIsbn = foundBook.isbn
           }
-        ],
-        generationConfig: {
-          temperature: 0.4,
-          topP: 0.8,
-          topK: 32
+        } else {
+          // Try to find book title in the prompt (title before "book")
+          const words = userPrompt.split(/\s+/)
+          const bookIndex = words.findIndex(w => w.toLowerCase() === 'book')
+          if (bookIndex > 0) {
+            const potentialTitle = words.slice(0, bookIndex).join(' ').replace(/^(take me to|show me|find|go to|open)\s+/i, '').trim()
+            const foundBook = findBookByTitle(potentialTitle)
+            if (foundBook) {
+              detectedBook = foundBook
+              bookIsbn = foundBook.isbn
+            }
+          }
+        }
+      }
+      
+      // If it's a navigation request and we found a book, it's definitely a book navigation
+      const isBookNavigation = isNavigationRequest && detectedBook !== null
+
+      // Try gemini-flash-latest first, fallback to gemini-pro
+      const modelsToTry = ['gemini-flash-latest', 'gemini-pro-latest']
+      let rawText = ''
+      let lastError = null
+
+      for (const modelName of modelsToTry) {
+        try {
+          const model = genAI.getGenerativeModel({ 
+            model: modelName,
+            generationConfig: {
+              temperature: 0.4,
+              topP: 0.8,
+              topK: 32
+            }
+          })
+
+          // Build prompt with detected book info if available
+          let bookInfo = ''
+          if (detectedBook) {
+            bookInfo = `\n\nDETECTED BOOK: "${detectedBook.title}" by ${detectedBook.author} (ISBN: ${detectedBook.isbn})\nIf user wants this book, use bookIsbn: "${detectedBook.isbn}" and navigate to: "/book/isbn/${detectedBook.isbn}"`
+          }
+          
+          let recommendationHint = ''
+          if (isRecommendationRequest) {
+            recommendationHint = '\n\nUSER IS REQUESTING BOOK RECOMMENDATIONS. Analyze their preferences (genre, themes, rating, etc.) and provide 1-3 book recommendations with ISBNs and reasons. Include the recommendations array in your JSON response.'
+          }
+          
+          const prompt = `${siteContext}${bookInfo}${recommendationHint}\n\nUser question: "${userPrompt}"\n\nAnalyze the user's request and respond appropriately:\n- If they want to navigate to a page, include navigation action with target path\n- If they want to navigate to a book, use the bookIsbn provided above and set target to "/book/isbn/{isbn}"\n- If they're asking for book recommendations, provide recommendations array with title, isbn, and reason\n- If they're asking a question, provide explanation only (no navigation)\n- If you cannot understand, provide the "sorry couldn't understand" response\n\nIMPORTANT: If a book was detected and user wants to navigate to it, you MUST include both the reply AND the navigation action with bookIsbn.\n\nRespond with JSON format: {"reply":"your response","action":{"type":"navigate","target":"/path"} (optional), "bookIsbn":"isbn" (optional for book navigation), "recommendations":[{"title":"Book Title","isbn":"isbn","reason":"why it matches"}] (optional for recommendations)}`
+          const result = await model.generateContent(prompt)
+          const response = await result.response
+          rawText = response.text()
+          
+          // Success - break out of loop
+          break
+        } catch (modelError) {
+          console.log(`Model ${modelName} failed, trying next...`, modelError)
+          lastError = modelError
+          // Continue to next model
         }
       }
 
-      const response = await fetch(`${GEMINI_ENDPOINT}?key=${GEMINI_API_KEY}`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(body)
-      })
-
-      if (!response.ok) {
-        throw new Error(`Gemini API error (${response.status})`)
+      if (!rawText) {
+        throw lastError || new Error('All models failed to generate a response')
       }
 
-      const data = await response.json()
-      const rawText = data?.candidates?.[0]?.content?.parts?.[0]?.text || 'Sorry, I could not generate a response.'
       let replyText = rawText
       let action = null
+      let responseBookIsbn = null
+      let recommendations = null
 
+      // Try to parse JSON response
       try {
         const parsed = JSON.parse(sanitizeJSON(rawText))
         if (parsed.reply) replyText = parsed.reply
         if (parsed.action) action = parsed.action
+        if (parsed.bookIsbn) responseBookIsbn = parsed.bookIsbn
+        if (parsed.recommendations && Array.isArray(parsed.recommendations)) {
+          recommendations = parsed.recommendations
+        }
       } catch {
-        // fall back to natural text
+        // fall back to natural text if JSON parsing fails
       }
 
-      appendMessage({ role: 'bot', text: replyText })
-      interpretNavigation(replyText, action)
+      // Use bookIsbn from pre-processing if available and response doesn't have one
+      const finalBookIsbn = responseBookIsbn || bookIsbn
+
+      // Format reply with recommendations if available
+      let formattedReply = replyText
+      if (recommendations && recommendations.length > 0) {
+        // Add clickable book recommendations to the reply
+        const recText = recommendations.map((rec, idx) => 
+          `${idx + 1}. ${rec.title} (${rec.reason || 'Matches your preferences'})`
+        ).join('\n')
+        formattedReply = `${replyText}\n\nRecommended Books:\n${recText}\n\nYou can ask me to "take me to [book title]" to see details.`
+      }
+      
+      appendMessage({ role: 'bot', text: formattedReply })
+      
+      // Store recommendations for potential navigation
+      if (recommendations && recommendations.length > 0) {
+        console.log('Book recommendations provided:', recommendations)
+      }
+      
+      // Navigate based on request type - prioritize book navigation
+      if (finalBookIsbn && (isBookNavigation || (isNavigationRequest && !isQuestionRequest))) {
+        // Book navigation - always navigate if book was detected and it's a navigation request
+        console.log('Navigating to book:', finalBookIsbn, 'Title:', detectedBook?.title)
+        // Use setTimeout to ensure message is displayed before navigation
+        setTimeout(() => {
+          handleNavigation(`/book/isbn/${finalBookIsbn}`)
+        }, 100)
+      } else if (isNavigationRequest && !isQuestionRequest) {
+        // Regular page navigation
+        if (action?.target) {
+          console.log('Navigating to page from action:', action.target)
+          setTimeout(() => {
+            handleNavigation(action.target)
+          }, 100)
+        } else {
+          // Try to infer navigation from text
+          interpretNavigation(replyText, action, null)
+        }
+      }
     } catch (apiError) {
-      console.error(apiError)
-      setError('Unable to reach the AI assistant right now. Please try again.')
+      console.error('AI Assistant error:', apiError)
+      const errorMessage = apiError.message || 'Unable to reach the AI assistant right now. Please try again.'
+      setError(errorMessage)
+      appendMessage({
+        role: 'bot',
+        text: `Sorry, I encountered an error: ${errorMessage}. Please check your API key and try again.`
+      })
     } finally {
       setIsLoading(false)
     }
-  }, [siteContext, appendMessage, interpretNavigation])
+  }, [siteContext, appendMessage, interpretNavigation, findBookByTitle])
 
   const handleSend = async () => {
     const trimmed = inputValue.trim()

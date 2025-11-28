@@ -7,9 +7,12 @@ import BookDetails from './pages/book-details/BookDetails'
 import BookNotFound from './pages/book-details/BookNotFound'
 import BookReviews from './pages/book-reviews'
 import ResourcesPage from './pages/resources'
+import SignIn from './pages/auth/SignIn'
+import MyLibrary from './pages/my-library'
 import { About, FAQ, Contact, Privacy } from './pages/info'
 import BookList from './pages/book-list'
 import { BooksProvider, useBooks } from './context/BooksContext'
+import { UserLibraryProvider } from './context/UserLibraryContext'
 import { isbnMatches } from './utils/bookUtils'
 import './App.css'
 
@@ -46,10 +49,13 @@ function App() {
   return (
     <Router>
       <BooksProvider>
-        <div className="App">
-          <Navbar />
-          <Routes>
+        <UserLibraryProvider>
+          <div className="App">
+            <Navbar />
+            <Routes>
             <Route path="/" element={<Home />} />
+            <Route path="/sign-in" element={<SignIn />} />
+            <Route path="/my-library" element={<MyLibrary />} />
             <Route path="/advanced-search" element={<AdvancedSearch />} />
             <Route path="/book/:id" element={<BookDetails />} />
             <Route path="/book-details" element={<BookDetails />} />
@@ -61,11 +67,13 @@ function App() {
             <Route path="/contact" element={<Contact />} />
             <Route path="/privacy" element={<Privacy />} />
             <Route path="/book-list/:listType" element={<BookList />} />
-          </Routes>
-        </div>
+            </Routes>
+          </div>
+        </UserLibraryProvider>
       </BooksProvider>
     </Router>
   )
 }
 
 export default App
+

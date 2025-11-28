@@ -76,7 +76,14 @@
   flex: 1;
 }
 
-.bookmark-btn {
+.book-actions {
+  display: flex;
+  gap: 0.5rem;
+  flex-shrink: 0;
+}
+
+.bookmark-btn,
+.favorite-btn {
   background: none;
   border: none;
   color: var(--gold);
@@ -86,12 +93,24 @@
   align-items: center;
   justify-content: center;
   transition: transform 0.2s ease, color 0.2s ease;
-  flex-shrink: 0;
+  border-radius: 6px;
 }
 
-.bookmark-btn:hover {
+.bookmark-btn:hover,
+.favorite-btn:hover {
   transform: scale(1.1);
   color: var(--light-gold);
+  background: rgba(184, 148, 31, 0.1);
+}
+
+.bookmark-btn.active,
+.favorite-btn.active {
+  color: var(--gold);
+}
+
+.bookmark-btn.active svg,
+.favorite-btn.active svg {
+  fill: var(--gold);
 }
 
 .book-author {

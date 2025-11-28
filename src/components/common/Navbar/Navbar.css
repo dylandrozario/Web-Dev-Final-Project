@@ -175,3 +175,13 @@
   }
 }
 
+.nav-user-email {
+  margin: 0 0.75rem;
+  font-size: 0.9rem;
+  opacity: 0.8;
+}
+
+.signout-link {
+  border-left: 1px solid rgba(255, 255, 255, 0.15);
+  margin-left: 0.75rem;
+}

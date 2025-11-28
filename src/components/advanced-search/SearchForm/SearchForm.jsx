@@ -6,8 +6,17 @@ const SearchForm = ({ onSearch }) => {
 
   const handleSubmit = (e) => {
     e.preventDefault()
-    if (searchTerm.trim() && onSearch) {
+    if (onSearch) {
       onSearch(searchTerm.trim())
+    }
+  }
+
+  const handleChange = (e) => {
+    const value = e.target.value
+    setSearchTerm(value)
+    // Call onSearch immediately to handle clearing and real-time search
+    if (onSearch) {
+      onSearch(value.trim())
     }
   }
 
@@ -22,7 +31,6 @@ const SearchForm = ({ onSearch }) => {
         <button 
           type="button" 
           className={styles.dropdownButton}
-          onClick={handleDropdownClick}
         >
           ALL <span className={styles.arrow}>▼</span>
         </button>
@@ -34,7 +42,7 @@ const SearchForm = ({ onSearch }) => {
         className={styles.searchInput}
         placeholder="Search books by title, author, publisher, ..."
         value={searchTerm}
-        onChange={(e) => setSearchTerm(e.target.value)}
+        onChange={handleChange}
       />
       <button type="submit" className={styles.searchButton}>
         Search

@@ -1,55 +1,106 @@
 import { useState, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
-import myLibraryData from '../../data/books/myLibrary.json'
-import libraryStatsData from '../../data/config/libraryStats.json'
 import { useAuth } from '../../context/AuthContext'
+import { useUserLibrary } from '../../context/UserLibraryContext'
+import { useBooks } from '../../context/BooksContext'
 import './MyLibrary.css'
 
 export default function MyLibrary() {
   const [activeFilter, setActiveFilter] = useState('all')
   const navigate = useNavigate()
-  const { isAuthenticated, user } = useAuth()
+  const { isAuthenticated, user, loading: authLoading } = useAuth()
+  const { getAllBooks } = useUserLibrary()
+  const { books: allBooks, loading: booksLoading } = useBooks()
+
+  // Get user's library books and merge with full book data
+  const userLibraryBooks = useMemo(() => {
+    try {
+      return getAllBooks() || []
+    } catch (error) {
+      console.error('Error getting user library books:', error)
+      return []
+    }
+  }, [getAllBooks])
+
+  const libraryBooksWithDetails = useMemo(() => {
+    if (!allBooks || allBooks.length === 0) return []
+    
+    return userLibraryBooks.map(libBook => {
+      // Find full book details by ISBN
+      const fullBook = allBooks.find(b => b.isbn === libBook.isbn)
+      if (!fullBook) return null
+
+      // Determine tag based on status priority
+      let tag = ''
+      if (libBook.favorite) tag = 'Favorite'
+      else if (libBook.reviewed) tag = 'Reviewed'
+      else if (libBook.saved) tag = 'Saved'
+      else if (libBook.rated) tag = 'Rated'
+
+      return {
+        ...fullBook,
+        ...libBook,
+        tag,
+        id: libBook.isbn
+      }
+    }).filter(Boolean)
+  }, [userLibraryBooks, allBooks])
 
   const filteredBooks = useMemo(() => {
-    return myLibraryData.filter((book) => {
+    return libraryBooksWithDetails.filter((book) => {
       if (activeFilter === 'saved') return book.saved
       if (activeFilter === 'favorite') return book.favorite
       if (activeFilter === 'rated') return book.rated
       if (activeFilter === 'reviewed') return book.reviewed
       return true
     })
-  }, [activeFilter])
+  }, [libraryBooksWithDetails, activeFilter])
 
   const stats = useMemo(() => {
-    const favorites = myLibraryData.filter((b) => b.favorite).length
-    const saved = myLibraryData.filter((b) => b.saved).length
-    const rated = myLibraryData.filter((b) => b.rated)
-    const reviewed = myLibraryData.filter((b) => b.reviewed).length
-    const queueCount = myLibraryData.filter((b) => b.saved && !b.rated).length
+    const favorites = libraryBooksWithDetails.filter((b) => b.favorite).length
+    const saved = libraryBooksWithDetails.filter((b) => b.saved).length
+    const rated = libraryBooksWithDetails.filter((b) => b.rated)
+    const reviewed = libraryBooksWithDetails.filter((b) => b.reviewed).length
 
     const avgRating =
       rated.length > 0
         ? (
             rated.reduce((sum, b) => {
-              const rating = parseFloat(b.ratingLabel.replace(/[^0-9.]/g, '')) || 0
+              const rating = b.rating || 0
               return sum + rating
             }, 0) / rated.length
           ).toFixed(1)
-        : libraryStatsData.averageRating
+        : '0.0'
 
-    const completionRate = saved > 0 ? Math.round((rated.length / saved) * 100) : 0
+    // Calculate favorite genre
+    const genreCounts = {}
+    libraryBooksWithDetails.forEach(book => {
+      if (book.genre) {
+        genreCounts[book.genre] = (genreCounts[book.genre] || 0) + 1
+      }
+    })
+    const favoriteGenre = Object.keys(genreCounts).length > 0
+      ? Object.keys(genreCounts).reduce((a, b) => genreCounts[a] > genreCounts[b] ? a : b)
+      : 'Fiction'
 
     return {
-      favorites: favorites || libraryStatsData.favorites,
-      savedBooks: saved || libraryStatsData.savedBooks,
+      favorites: favorites || 0,
+      savedBooks: saved || 0,
       averageRating: avgRating,
-      favoriteGenre: libraryStatsData.favoriteGenre,
-      ratedTitles: rated.length || libraryStatsData.ratedTitles || 0,
-      reviewedTitles: reviewed || libraryStatsData.reviewedTitles || 0,
-      queueCount: queueCount || Math.max(saved - rated.length, 0),
-      completionRate
+      favoriteGenre: favoriteGenre
     }
-  }, [])
+  }, [libraryBooksWithDetails])
+
+  // Show loading state
+  if (authLoading || booksLoading) {
+    return (
+      <div className="my-library-page">
+        <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--white)' }}>
+          <p>Loading your library...</p>
+        </div>
+      </div>
+    )
+  }
 
   if (!isAuthenticated) {
     return (
@@ -79,178 +130,106 @@ export default function MyLibrary() {
     )
   }
 
-  const displayName = user?.name?.split(' ')[0] || 'Reader'
-
   return (
     <div className="my-library-page">
-      <section className="my-library-hero">
-        <div className="hero-content">
-          <p className="hero-eyebrow">Personal stacks · {displayName}</p>
-          <h1>My Library</h1>
-          <p className="hero-description">
-            View your saved books, favorites, ratings, and reading patterns in one place.
-          </p>
-          <div className="hero-pill-row" aria-hidden="true">
-            <span className="hero-pill">Saved lists</span>
-            <span className="hero-pill">Favorites</span>
-            <span className="hero-pill">Reviews</span>
-          </div>
+      {/* Header Section */}
+      <div className="my-library-header">
+        <h1 className="my-library-title">My Library</h1>
+        <p className="my-library-subtitle">
+          View your saved books, favorites, ratings, and reading patterns in one place.
+        </p>
+      </div>
+
+      {/* Summary Statistics */}
+      <div className="my-library-stats">
+        <div className="stat-card">
+          <p className="stat-label">Favorites</p>
+          <p className="stat-value">{stats.favorites}</p>
         </div>
-        <div className="hero-stats-grid">
-          <div className="hero-stat-card">
-            <p className="hero-stat-label">Saved books</p>
-            <p className="hero-stat-value">{stats.savedBooks}</p>
-            <span className="hero-stat-subtext">ready to read</span>
-          </div>
-          <div className="hero-stat-card">
-            <p className="hero-stat-label">Favorites</p>
-            <p className="hero-stat-value">{stats.favorites}</p>
-            <span className="hero-stat-subtext">most-loved picks</span>
-          </div>
-          <div className="hero-stat-card">
-            <p className="hero-stat-label">Average rating</p>
-            <p className="hero-stat-value">{stats.averageRating}</p>
-            <span className="hero-stat-subtext">based on your reviews</span>
-          </div>
-          <div className="hero-stat-card">
-            <p className="hero-stat-label">Favorite genre</p>
-            <p className="hero-stat-value">{stats.favoriteGenre}</p>
-            <span className="hero-stat-subtext">most explored</span>
-          </div>
+        <div className="stat-card">
+          <p className="stat-label">Saved Books</p>
+          <p className="stat-value">{stats.savedBooks}</p>
         </div>
-      </section>
+        <div className="stat-card">
+          <p className="stat-label">Average Rating</p>
+          <p className="stat-value">{stats.averageRating}</p>
+        </div>
+        <div className="stat-card">
+          <p className="stat-label">Favorite Genre</p>
+          <p className="stat-value">{stats.favoriteGenre}</p>
+        </div>
+      </div>
 
-      <div className="page-shell my-library-shell">
-        <section className="stats-section library-panel snapshot-panel">
-          <header className="panel-header">
-            <div>
-              <p className="panel-eyebrow">Snapshot</p>
-              <h2>Reading momentum</h2>
-            </div>
-            <p className="panel-description">
-              Fresh signals that surface how consistently you're logging ratings, reviews, and future reads.
-            </p>
-          </header>
-          <div className="snapshot-grid">
-            <article className="snapshot-card">
-              <p className="snapshot-label">Rated titles</p>
-              <p className="snapshot-value">{stats.ratedTitles}</p>
-              <span className="snapshot-subtext">books with personal scores</span>
-            </article>
-            <article className="snapshot-card">
-              <p className="snapshot-label">Reviews logged</p>
-              <p className="snapshot-value">{stats.reviewedTitles}</p>
-              <span className="snapshot-subtext">shared thoughts and highlights</span>
-            </article>
-            <article className="snapshot-card">
-              <p className="snapshot-label">Queue count</p>
-              <p className="snapshot-value">{stats.queueCount}</p>
-              <span className="snapshot-subtext">saved but not rated yet</span>
-            </article>
-            <article className="snapshot-card snapshot-progress-card">
-              <p className="snapshot-label">Completion rate</p>
-              <p className="snapshot-value">{stats.completionRate}%</p>
-              <div
-                className="snapshot-progress"
-                role="img"
-                aria-label={`Library completion rate ${stats.completionRate} percent`}
-              >
-                <div
-                  className="snapshot-progress-fill"
-                  style={{ width: `${Math.min(stats.completionRate, 100)}%` }}
-                />
-              </div>
-              <span className="snapshot-subtext">rated vs saved titles</span>
-            </article>
-          </div>
-        </section>
+      {/* Filter Buttons */}
+      <div className="my-library-filters">
+        <button
+          className={`filter-btn ${activeFilter === 'all' ? 'active' : ''}`}
+          onClick={() => setActiveFilter('all')}
+        >
+          All
+        </button>
+        <button
+          className={`filter-btn ${activeFilter === 'saved' ? 'active' : ''}`}
+          onClick={() => setActiveFilter('saved')}
+        >
+          Saved
+        </button>
+        <button
+          className={`filter-btn ${activeFilter === 'favorite' ? 'active' : ''}`}
+          onClick={() => setActiveFilter('favorite')}
+        >
+          Favorites
+        </button>
+        <button
+          className={`filter-btn ${activeFilter === 'rated' ? 'active' : ''}`}
+          onClick={() => setActiveFilter('rated')}
+        >
+          Rated
+        </button>
+        <button
+          className={`filter-btn ${activeFilter === 'reviewed' ? 'active' : ''}`}
+          onClick={() => setActiveFilter('reviewed')}
+        >
+          Reviewed
+        </button>
+      </div>
 
-        <section className="filters-section library-panel tonal-panel">
-          <header className="panel-header">
-            <div>
-              <p className="panel-eyebrow">Filters</p>
-              <h2>Focus your shelves</h2>
-            </div>
-            <p className="panel-description">
-              Toggle through quick filters to highlight a specific slice of your library.
-            </p>
-          </header>
-          <div className="filter-buttons">
-            <button
-              className={'chip' + (activeFilter === 'all' ? ' chip-active' : '')}
-              onClick={() => setActiveFilter('all')}
-            >
-              All
-            </button>
-            <button
-              className={'chip' + (activeFilter === 'saved' ? ' chip-active' : '')}
-              onClick={() => setActiveFilter('saved')}
-            >
-              Saved
-            </button>
-            <button
-              className={'chip' + (activeFilter === 'favorite' ? ' chip-active' : '')}
-              onClick={() => setActiveFilter('favorite')}
-            >
-              Favorites
-            </button>
-            <button
-              className={'chip' + (activeFilter === 'rated' ? ' chip-active' : '')}
-              onClick={() => setActiveFilter('rated')}
-            >
-              Rated
-            </button>
-            <button
-              className={'chip' + (activeFilter === 'reviewed' ? ' chip-active' : '')}
-              onClick={() => setActiveFilter('reviewed')}
-            >
-              Reviewed
-            </button>
-          </div>
-        </section>
-
-        <section className="cards-section library-panel tonal-panel" aria-label="My saved books">
-          <header className="panel-header">
-            <div>
-              <p className="panel-eyebrow">Collection</p>
-              <h2>Books you're tracking</h2>
-            </div>
-            <p className="panel-description">
-              Tap a card to dive deeper, leave a review, or move a title into your next reading sprint.
-            </p>
-          </header>
-          <div className="cards-grid my-library-grid">
-            {filteredBooks.map((book) => (
-              <article
-                key={book.id}
-                className="card book-card my-library-card"
-                data-saved={book.saved}
-                data-favorite={book.favorite}
-                data-rated={book.rated}
-                data-reviewed={book.reviewed}
-              >
-                <div className="card-tag">{book.tag}</div>
-                <h2 className="card-title">{book.title}</h2>
-                <p className="card-meta">
-                  <span>{book.author}</span> • <span>Rating: {book.ratingLabel}</span>
-                </p>
-                <p className="card-body">{book.description}</p>
-                <div className="card-badges">
-                  {book.saved && <span className="badge">Saved</span>}
-                  {book.favorite && <span className="badge">Favorite</span>}
-                  {book.rated && <span className="badge">Rated</span>}
-                  {book.reviewed && <span className="badge">Reviewed</span>}
-                </div>
-              </article>
-            ))}
-
-            {filteredBooks.length === 0 && (
-              <p className="empty-message">
-                No books match this filter yet. Try switching to a different filter.
-              </p>
+      {/* Book Cards Grid */}
+      <div className="my-library-books-grid">
+        {filteredBooks.map((book) => (
+          <div
+            key={book.isbn}
+            className="my-library-book-card"
+            onClick={() => navigate(`/book/isbn/${book.isbn}`)}
+          >
+            {book.tag && (
+              <div className="book-card-tag">{book.tag}</div>
             )}
+            <h3 className="book-card-title">{book.title}</h3>
+            <p className="book-card-author">{book.author}</p>
+            <div className="book-card-rating">
+              {book.ratingLabel && book.ratingLabel !== '—' ? (
+                <span className="rating-stars">{book.ratingLabel}</span>
+              ) : (
+                <span className="rating-stars">—</span>
+              )}
+            </div>
+            <p className="book-card-description">{book.description || 'No description available.'}</p>
+            <div className="book-card-badges">
+              {book.saved && <span className="book-badge">Saved</span>}
+              {book.favorite && <span className="book-badge">Favorite</span>}
+              {book.rated && <span className="book-badge">Rated</span>}
+              {book.reviewed && <span className="book-badge">Reviewed</span>}
+            </div>
           </div>
-        </section>
+        ))}
+
+        {filteredBooks.length === 0 && (
+          <div className="my-library-empty">
+            <p>No books match this filter yet.</p>
+            <p>Start by saving or favoriting books from the catalog!</p>
+          </div>
+        )}
       </div>
     </div>
   )

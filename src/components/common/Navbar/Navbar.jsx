@@ -1,14 +1,46 @@
-import { useCallback } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
+import { useAuth } from '../../../context/AuthContext'
 import './Navbar.css'
 
 function Navbar() {
   const navigate = useNavigate()
   const location = useLocation()
+  const { isAuthenticated, user, logout } = useAuth()
+  const [isAccountDropdownOpen, setIsAccountDropdownOpen] = useState(false)
+  const dropdownRef = useRef(null)
 
   const handleNavClick = useCallback((path) => {
     navigate(path)
+    setIsAccountDropdownOpen(false)
   }, [navigate])
+
+  const handleSignOut = useCallback(() => {
+    logout()
+    setIsAccountDropdownOpen(false)
+    navigate('/')
+  }, [logout, navigate])
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setIsAccountDropdownOpen(false)
+      }
+    }
+
+    if (isAccountDropdownOpen) {
+      document.addEventListener('mousedown', handleClickOutside)
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside)
+    }
+  }, [isAccountDropdownOpen])
+
+  const accountInitials = isAuthenticated && user?.name
+    ? user.name.split(' ').map((part) => part[0]).slice(0, 2).join('').toUpperCase()
+    : null
 
   return (
     <nav className="navbar">
@@ -51,6 +83,65 @@ function Navbar() {
             <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
           </svg>
         </button>
+        
+        {/* User Account Dropdown */}
+        <div className="account-dropdown-wrapper" ref={dropdownRef}>
+          <button
+            className={`nav-link icon-link account-trigger ${
+              location.pathname === '/my-library' || location.pathname === '/sign-in' ? 'active' : ''
+            }`}
+            onClick={() => setIsAccountDropdownOpen(!isAccountDropdownOpen)}
+            aria-label="Account"
+          >
+            {accountInitials ? (
+              <span className="account-initials">{accountInitials}</span>
+            ) : (
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+                <circle cx="12" cy="7" r="4"/>
+              </svg>
+            )}
+          </button>
+          {isAccountDropdownOpen && (
+            <div className="account-dropdown">
+              {isAuthenticated ? (
+                <>
+                  <div className="dropdown-info">
+                    <p className="dropdown-name">{user?.name || 'User'}</p>
+                    <p className="dropdown-role">{user?.email || ''}</p>
+                  </div>
+                  <button
+                    className="dropdown-item"
+                    onClick={() => handleNavClick('/my-library')}
+                  >
+                    My Library
+                  </button>
+                  <button
+                    className="dropdown-item"
+                    onClick={handleSignOut}
+                  >
+                    Sign Out
+                  </button>
+                </>
+              ) : (
+                <>
+                  <button
+                    className="dropdown-item"
+                    onClick={() => handleNavClick('/my-library')}
+                  >
+                    My Library
+                  </button>
+                  <button
+                    className="dropdown-item"
+                    onClick={() => handleNavClick('/sign-in')}
+                  >
+                    Sign In
+                  </button>
+                </>
+              )}
+            </div>
+          )}
+        </div>
       </div>
     </nav>
   )

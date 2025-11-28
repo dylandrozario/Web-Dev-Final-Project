@@ -1,9 +1,11 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect, useCallback } from 'react'
 import { useParams, useLocation, useNavigate } from 'react-router-dom'
 import userReviewsData from '../../data/reviews/userReviews.json'
 import APP_CONFIG from '../../config/constants'
 import { generateLibraryAvailability, formatDate, calculateReadTime, generateBookDescription, normalizeIsbn, isbnMatches } from '../../utils/bookUtils'
 import { useBooks } from '../../context/BooksContext'
+import { useUserLibrary } from '../../context/UserLibraryContext'
+import { useAuth } from '../../context/AuthContext'
 import './BookDetails.css'
 
 const generateTimestamp = (seed) => {
@@ -48,6 +50,8 @@ export default function BookDetails() {
   const location = useLocation()
   const navigate = useNavigate()
   const { books, loading } = useBooks()
+  const { isAuthenticated } = useAuth()
+  const { saveBook, unsaveBook, favoriteBook, unfavoriteBook, rateBook, reviewBook, getBookStatus } = useUserLibrary()
 
   // Find the book by ID (using ISBN or index)
   const { book, bookNotFound } = useMemo(() => {
@@ -91,6 +95,16 @@ export default function BookDetails() {
   if (bookNotFound || !book) {
     return null
   }
+
+  // Get book status from user library (safe to call now that book exists)
+  const bookStatus = useMemo(() => {
+    try {
+      return getBookStatus(book.isbn)
+    } catch (error) {
+      console.error('Error getting book status:', error)
+      return { saved: false, favorite: false, rated: false, reviewed: false, rating: null, ratingLabel: '—' }
+    }
+  }, [book.isbn, getBookStatus])
 
   // Calculate read time: use provided value, or calculate from pages, or use default
   const readTimeMinutes = useMemo(() => {
@@ -155,6 +169,42 @@ export default function BookDetails() {
     const { name, value } = event.target
     setReviewForm(prev => ({ ...prev, [name]: value }))
   }
+
+  // Update review form rating if book is already rated
+  useEffect(() => {
+    if (bookStatus.rated && bookStatus.rating) {
+      setReviewForm(prev => ({ ...prev, rating: bookStatus.rating.toFixed(1) }))
+    }
+  }, [bookStatus.rated, bookStatus.rating])
+
+  // Handle save/favorite actions
+  const handleSave = useCallback(() => {
+    if (!isAuthenticated) {
+      navigate('/sign-in', { state: { from: location.pathname } })
+      return
+    }
+    if (!book?.isbn) return
+    
+    if (bookStatus.saved) {
+      unsaveBook(book.isbn)
+    } else {
+      saveBook(book)
+    }
+  }, [isAuthenticated, book, bookStatus.saved, navigate, location.pathname, saveBook, unsaveBook])
+  
+  const handleFavorite = useCallback(() => {
+    if (!isAuthenticated) {
+      navigate('/sign-in', { state: { from: location.pathname } })
+      return
+    }
+    if (!book?.isbn) return
+    
+    if (bookStatus.favorite) {
+      unfavoriteBook(book.isbn)
+    } else {
+      favoriteBook(book)
+    }
+  }, [isAuthenticated, book, bookStatus.favorite, navigate, location.pathname, favoriteBook, unfavoriteBook])
 
   const ratingAsNumber = parseFloat(reviewForm.rating) || 0
   const starPickerValue = hoverRating ?? ratingAsNumber
@@ -247,6 +297,13 @@ export default function BookDetails() {
       relativeTime: '1m'
     }
     setUserReviews(prev => [entry, ...prev])
+    
+    // Save rating and review to user library
+    if (isAuthenticated) {
+      rateBook(book, ratingValue)
+      reviewBook(book, reviewForm.body.trim())
+    }
+    
     setReviewForm({ rating: '4.0', body: '' })
   }
 
@@ -272,11 +329,28 @@ export default function BookDetails() {
           <div className="book-info-section">
             <div className="book-title-row">
               <h1 className="book-title">{book.title}</h1>
-              <button className="bookmark-btn" aria-label="Bookmark">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/>
-                </svg>
-              </button>
+              <div className="book-actions">
+                <button 
+                  className={`bookmark-btn ${bookStatus.saved ? 'active' : ''}`}
+                  onClick={handleSave}
+                  aria-label={bookStatus.saved ? 'Remove from saved' : 'Save book'}
+                  title={bookStatus.saved ? 'Remove from saved' : 'Save book'}
+                >
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill={bookStatus.saved ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2">
+                    <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/>
+                  </svg>
+                </button>
+                <button 
+                  className={`favorite-btn ${bookStatus.favorite ? 'active' : ''}`}
+                  onClick={handleFavorite}
+                  aria-label={bookStatus.favorite ? 'Remove from favorites' : 'Add to favorites'}
+                  title={bookStatus.favorite ? 'Remove from favorites' : 'Add to favorites'}
+                >
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill={bookStatus.favorite ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2">
+                    <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+                  </svg>
+                </button>
+              </div>
             </div>
             <p className="book-author">by {book.author}</p>
             

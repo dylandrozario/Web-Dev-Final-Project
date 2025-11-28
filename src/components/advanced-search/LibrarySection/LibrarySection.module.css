@@ -1,6 +1,10 @@
 .libraryContent {
   display: flex;
   gap: 2rem;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  overflow: hidden;
 }
 
 @media (max-width: 1024px) {

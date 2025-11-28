@@ -141,7 +141,7 @@ function Home() {
                 <button 
                   key={option}
                   className="browse-btn" 
-                    onClick={() => handleNavigate('/advanced-search')}
+                  onClick={() => navigate('/book-list/2025')}
                 >
                   {option}
                 </button>

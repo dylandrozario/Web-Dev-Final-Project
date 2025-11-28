@@ -3,11 +3,16 @@
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
   gap: 1.5rem;
+  width: 100%;
   max-width: 100%;
+  min-width: 0;
+  overflow: hidden;
 }
 
 @media (max-width: 1024px) {
   .booksGrid {
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 1rem;
     max-width: 100%;
   }
 }

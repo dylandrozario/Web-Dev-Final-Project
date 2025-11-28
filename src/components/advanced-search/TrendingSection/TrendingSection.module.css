@@ -1,50 +1,138 @@
 .trendingSection {
-  margin-bottom: 3rem;
+  margin-bottom: 4rem;
 }
 
-.trendingContainer {
+.trendingShell {
+  background: linear-gradient(120deg, rgba(255, 255, 255, 0.08), rgba(212, 175, 55, 0.08));
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 24px;
+  padding: 2.5rem;
+  backdrop-filter: blur(18px);
+  box-shadow: 0 25px 50px rgba(0, 0, 0, 0.35);
   display: flex;
-  gap: 3rem;
-  align-items: flex-start;
+  flex-direction: column;
+  gap: 2rem;
 }
 
 .trendingHeader {
-  max-width: 300px;
+  display: flex;
+  justify-content: space-between;
+  gap: 2rem;
+  flex-wrap: wrap;
+}
+
+.sectionEyebrow {
+  text-transform: uppercase;
+  letter-spacing: 0.3em;
+  font-size: 0.75rem;
+  color: rgba(255, 255, 255, 0.6);
+  margin-bottom: 0.75rem;
 }
 
 .trendingTitle {
-  font-size: 2rem;
+  font-size: clamp(2rem, 3vw, 2.8rem);
   font-weight: 700;
-  margin-bottom: 0.5rem;
+  margin-bottom: 0.75rem;
   color: var(--gold);
-  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.3);
+  text-shadow: 0 5px 18px rgba(0, 0, 0, 0.4);
 }
 
 .trendingSubtitle {
-  color: var(--text-light);
+  max-width: 560px;
+  line-height: 1.6;
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.trendingMeta {
+  display: flex;
+  align-items: flex-end;
+  gap: 1.25rem;
+  flex-wrap: wrap;
+}
+
+.metaCard {
+  background: rgba(0, 0, 0, 0.25);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 18px;
+  padding: 1rem 1.25rem;
+  min-width: 160px;
+}
+
+.metaValue {
+  display: block;
+  font-size: 2rem;
+  font-weight: 700;
+  color: #fff;
+}
+
+.metaLabel {
+  margin: 0;
+  font-size: 0.85rem;
+  color: rgba(255, 255, 255, 0.75);
+}
+
+.viewAllButton {
+  border: none;
+  border-radius: 999px;
+  padding: 0.85rem 1.75rem;
+  background: var(--gold);
+  color: var(--dark-maroon);
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.viewAllButton:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.35);
+}
+
+.trendingBooksPanel {
+  background: rgba(0, 0, 0, 0.25);
+  border-radius: 20px;
+  padding: 1.75rem;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.panelHeader {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+  color: rgba(255, 255, 255, 0.7);
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.panelDivider {
+  flex: 1;
+  height: 1px;
+  background: linear-gradient(90deg, rgba(255, 255, 255, 0.4), rgba(255, 255, 255, 0));
 }
 
 .trendingBooksScroll {
-  display: flex;
-  gap: 1.5rem;
-  overflow-x: auto;
-  flex: 1;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1.75rem;
+}
+
+.trendingBooksScroll article {
+  background: rgba(255, 255, 255, 0.03);
+  padding: 1.25rem;
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  min-height: 100%;
 }
 
 @media (max-width: 768px) {
-  .trendingContainer {
+  .trendingShell {
+    padding: 1.5rem;
+  }
+
+  .trendingMeta {
     flex-direction: column;
-    gap: 1.5rem;
-  }
-
-  .trendingHeader {
-    max-width: 100%;
-  }
-}
-
-@media (max-width: 480px) {
-  .trendingTitle {
-    font-size: 1.5rem;
+    align-items: flex-start;
   }
 }
 
