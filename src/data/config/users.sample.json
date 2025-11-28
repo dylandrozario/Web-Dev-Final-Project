@@ -1,0 +1,24 @@
+[
+  {
+    "id": "reader-001",
+    "name": "Avery Harper",
+    "email": "demo1@librarycatalog.ai",
+    "password": "demo-pass-001",
+    "role": "Collections Lead"
+  },
+  {
+    "id": "reader-002",
+    "name": "Mei Alvarez",
+    "email": "demo2@librarycatalog.ai",
+    "password": "demo-pass-002",
+    "role": "Recommendations Editor"
+  },
+  {
+    "id": "reader-003",
+    "name": "Noah Spencer",
+    "email": "demo3@librarycatalog.ai",
+    "password": "demo-pass-003",
+    "role": "Research Specialist"
+  }
+]
+

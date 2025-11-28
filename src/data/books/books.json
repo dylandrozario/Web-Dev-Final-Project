@@ -1,0 +1,111 @@
+[
+  {
+    "title": "The Great Gatsby",
+    "author": "F. Scott Fitzgerald",
+    "releaseDate": "1925-04-10",
+    "isbn": "978-0-7432-7356-5",
+    "rating": 4.5,
+    "genre": "Fiction",
+    "image": "/images/books/gatsby.svg",
+    "pages": 180,
+    "publisher": "Charles Scribner's Sons",
+    "language": "English"
+  },
+  {
+    "title": "To Kill a Mockingbird",
+    "author": "Harper Lee",
+    "releaseDate": "1960-07-11",
+    "isbn": "978-0-06-112008-4",
+    "rating": 4.8,
+    "genre": "Fiction",
+    "image": "/images/books/mockingbird.svg",
+    "pages": 376,
+    "publisher": "J.B. Lippincott & Co.",
+    "language": "English"
+  },
+  {
+    "title": "1984",
+    "author": "George Orwell",
+    "releaseDate": "1949-06-08",
+    "isbn": "978-0-452-28423-4",
+    "rating": 4.7,
+    "genre": "Dystopian",
+    "image": "/images/books/1984.svg",
+    "pages": 328,
+    "publisher": "Secker & Warburg",
+    "language": "English"
+  },
+  {
+    "title": "The Lord of the Rings",
+    "author": "J.R.R. Tolkien",
+    "releaseDate": "1954-07-29",
+    "isbn": "978-0-544-00035-4",
+    "rating": 4.9,
+    "genre": "Fantasy",
+    "image": "/images/books/LOTR.jpg",
+    "pages": 1178,
+    "publisher": "George Allen & Unwin",
+    "language": "English"
+  },
+  {
+    "title": "Pride and Prejudice",
+    "author": "Jane Austen",
+    "releaseDate": "1813-01-28",
+    "isbn": "978-0-14-143951-8",
+    "rating": 4.6,
+    "genre": "Romance",
+    "image": "/images/books/pride.svg",
+    "pages": 432,
+    "publisher": "T. Egerton, Whitehall",
+    "language": "English"
+  },
+  {
+    "title": "The Hobbit",
+    "author": "J.R.R. Tolkien",
+    "releaseDate": "1937-09-21",
+    "isbn": "978-0-547-92822-7",
+    "rating": 4.8,
+    "genre": "Fantasy",
+    "image": "/images/books/hobbit.jpg",
+    "pages": 310,
+    "publisher": "George Allen & Unwin",
+    "language": "English"
+  },
+  {
+    "title": "The Fellowship of the Ring",
+    "author": "J.R.R. Tolkien",
+    "releaseDate": "1954-07-29",
+    "isbn": "978-0-544-00036-1",
+    "rating": 4.9,
+    "genre": "Fantasy",
+    "image": "/images/books/fellowship.jpg",
+    "pages": 423,
+    "publisher": "George Allen & Unwin",
+    "language": "English"
+  },
+  {
+    "title": "The Two Towers",
+    "author": "J.R.R. Tolkien",
+    "releaseDate": "1954-11-11",
+    "isbn": "978-0-544-00037-8",
+    "rating": 4.8,
+    "genre": "Fantasy",
+    "image": "/images/books/towers.jpg",
+    "pages": 352,
+    "publisher": "George Allen & Unwin",
+    "language": "English"
+  },
+  {
+    "title": "The Return of the King",
+    "author": "J.R.R. Tolkien",
+    "releaseDate": "1955-10-20",
+    "isbn": "978-0-544-00038-5",
+    "rating": 4.9,
+    "genre": "Fantasy",
+    "image": "/images/books/king.jpg",
+    "pages": 416,
+    "publisher": "George Allen & Unwin",
+    "language": "English"
+  }
+]
+

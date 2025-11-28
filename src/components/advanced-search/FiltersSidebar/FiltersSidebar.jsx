@@ -1,4 +1,3 @@
-import React from 'react'
 import FilterGroup from '../FilterGroup/FilterGroup'
 import styles from './FiltersSidebar.module.css'
 

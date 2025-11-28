@@ -1,0 +1,55 @@
+{
+  "978-0-7432-7356-5": [
+    {
+      "id": 1,
+      "username": "booklover42",
+      "avatar": "BL",
+      "text": "This is one of my all-time favorites! The character development is incredible.",
+      "date": "2 days ago",
+      "likes": 12
+    },
+    {
+      "id": 2,
+      "username": "readerscorner",
+      "avatar": "RC",
+      "text": "Just finished reading this. The ending was perfect! Highly recommend to anyone who enjoys classic literature.",
+      "date": "5 days ago",
+      "likes": 8
+    },
+    {
+      "id": 3,
+      "username": "literaturefan",
+      "avatar": "LF",
+      "text": "The prose is beautiful and the themes are timeless. A must-read for any book enthusiast.",
+      "date": "1 week ago",
+      "likes": 15
+    },
+    {
+      "id": 4,
+      "username": "bookworm99",
+      "avatar": "BW",
+      "text": "I've read this multiple times and it gets better with each reading. The symbolism is incredible.",
+      "date": "2 weeks ago",
+      "likes": 20
+    }
+  ],
+  "default": [
+    {
+      "id": 1,
+      "username": "booklover42",
+      "avatar": "BL",
+      "text": "This is one of my all-time favorites! The character development is incredible.",
+      "date": "2 days ago",
+      "likes": 12
+    },
+    {
+      "id": 2,
+      "username": "readerscorner",
+      "avatar": "RC",
+      "text": "Just finished reading this. The ending was perfect! Highly recommend to anyone who enjoys classic literature.",
+      "date": "5 days ago",
+      "likes": 8
+    }
+  ]
+}
+

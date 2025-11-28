@@ -1,0 +1,57 @@
+[
+  {
+    "id": 1,
+    "color": "#4A90E2",
+    "icon": "📚",
+    "title": "Digital Archives & Special Collections",
+    "description": "Access historical documents, rare manuscripts, and archival materials online",
+    "likes": 124,
+    "comments": 23
+  },
+  {
+    "id": 2,
+    "color": "#50C878",
+    "icon": "🔍",
+    "title": "Research Databases",
+    "description": "Comprehensive academic databases for scholarly research and articles",
+    "likes": 89,
+    "comments": 15
+  },
+  {
+    "id": 3,
+    "color": "#FF6B6B",
+    "icon": "📖",
+    "title": "E-Book Collection",
+    "description": "Thousands of digital books available for instant download and reading",
+    "likes": 156,
+    "comments": 31
+  },
+  {
+    "id": 4,
+    "color": "#9B59B6",
+    "icon": "🖥️",
+    "title": "Study Spaces & Equipment",
+    "description": "Reserve study rooms, access computers, and borrow technology equipment",
+    "likes": 67,
+    "comments": 12
+  },
+  {
+    "id": 5,
+    "color": "#F39C12",
+    "icon": "📝",
+    "title": "Research Guides & Tutorials",
+    "description": "Expert help and step-by-step guides for your academic research projects",
+    "likes": 203,
+    "comments": 45
+  },
+  {
+    "id": 6,
+    "color": "#1ABC9C",
+    "icon": "📦",
+    "title": "Interlibrary Loan Services",
+    "description": "Request books and materials from other libraries across the network",
+    "likes": 178,
+    "comments": 28
+  }
+]
+

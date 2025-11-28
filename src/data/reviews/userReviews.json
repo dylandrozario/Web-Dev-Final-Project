@@ -1,0 +1,27 @@
+[
+  {
+    "bookIsbn": "978-0-7432-7356-5",
+    "reviewer": "BookLover42",
+    "rating": 4.8,
+    "review": "One day I'm gonna tell my grandkids that I was alive when this masterpiece was published and they weren't. This book captures the essence of its era so perfectly. The prose is absolutely stunning, and the characters feel so real. It's hard to believe this was written so long ago - it feels timeless.",
+    "likes": 358,
+    "comments": 29
+  },
+  {
+    "bookIsbn": "978-0-06-112008-4",
+    "reviewer": "LiteraryFan",
+    "rating": 5.0,
+    "review": "This is one of the most astonishing and original works to come out of this period. You don't have to even like the style to know that it is at this point in literary history that their creative genius was overflowing beyond what seemed \"imaginable.\"",
+    "likes": 244,
+    "comments": 4
+  },
+  {
+    "bookIsbn": "978-0-452-28423-4",
+    "reviewer": "ClassicReader",
+    "rating": 4.5,
+    "review": "This book broke boundaries and continues to resonate with readers today. The social commentary is sharp, the narrative is compelling, and the impact is undeniable. A must-read for anyone interested in classic literature.",
+    "likes": 1783,
+    "comments": 93
+  }
+]
+

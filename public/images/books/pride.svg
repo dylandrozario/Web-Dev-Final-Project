@@ -1,0 +1,13 @@
+<svg width="400" height="600" viewBox="0 0 400 600" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="gradPride" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#f7d9c4;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#e9b8a2;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  <rect width="400" height="600" rx="24" fill="url(#gradPride)" />
+  <rect x="35" y="35" width="330" height="530" fill="none" stroke="#6b1f1f" stroke-width="6" rx="18" />
+  <text x="50%" y="45%" fill="#6b1f1f" font-family="'Garamond', serif" font-size="46" font-weight="600" text-anchor="middle">PRIDE &amp;</text>
+  <text x="50%" y="58%" fill="#6b1f1f" font-family="'Garamond', serif" font-size="56" font-weight="600" text-anchor="middle">PREJUDICE</text>
+  <text x="50%" y="72%" fill="#6b1f1f" font-family="'Garamond', serif" font-size="26" text-anchor="middle">Jane Austen</text>
+</svg>

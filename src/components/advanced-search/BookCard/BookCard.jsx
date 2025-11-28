@@ -1,33 +1,63 @@
-import React from 'react'
+import { useCallback } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { FaHeart, FaBookmark } from 'react-icons/fa'
-import { useLibrary } from '../../../LibraryContext'
+import { useUserLibrary } from '../../../context/UserLibraryContext'
 import styles from './BookCard.module.css'
 
 const BookCard = ({ book, onAddToCart, variant = 'grid' }) => {
-  const { toggleFavorite, toggleSaved, isFavorite, isSaved } = useLibrary()
+  const navigate = useNavigate()
+  const { favoriteBook, unfavoriteBook, saveBook, unsaveBook, getBookStatus } = useUserLibrary()
 
-  const handleAddToCart = (e) => {
+  const handleAddToCart = useCallback((e) => {
     e.stopPropagation()
     if (onAddToCart) {
       onAddToCart(book)
     }
-  }
+  }, [book, onAddToCart])
 
-  const handleFavorite = (e) => {
+  const handleCardClick = useCallback(() => {
+    navigate(`/book/isbn/${book.isbn}`)
+  }, [navigate, book.isbn])
+
+  const handleFavorite = useCallback((e) => {
     e.stopPropagation()
-    toggleFavorite(book)
-  }
+    const status = getBookStatus(book.isbn)
+    if (status.favorite) {
+      unfavoriteBook(book.isbn)
+    } else {
+      favoriteBook(book)
+    }
+  }, [favoriteBook, unfavoriteBook, getBookStatus, book])
 
-  const handleSaved = (e) => {
+  const handleSaved = useCallback((e) => {
     e.stopPropagation()
-    toggleSaved(book)
-  }
+    const status = getBookStatus(book.isbn)
+    if (status.saved) {
+      unsaveBook(book.isbn)
+    } else {
+      saveBook(book)
+    }
+  }, [saveBook, unsaveBook, getBookStatus, book])
 
-  const favorited = isFavorite(book)
-  const saved = isSaved(book)
+  const status = getBookStatus(book.isbn)
+  const favorited = status.favorite
+  const saved = status.saved
 
   return (
-    <article className={variant === 'grid' ? styles.bookCardGrid : styles.bookCard}>
+    <article 
+      className={variant === 'grid' ? styles.bookCardGrid : styles.bookCard}
+      onClick={handleCardClick}
+      style={{ cursor: 'pointer' }}
+      role="button"
+      tabIndex={0}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault()
+          handleCardClick()
+        }
+      }}
+      aria-label={`View details for ${book.title} by ${book.author}`}
+    >
       <div className={styles.bookCover}>
         {book.image ? (
           <img 

@@ -1,0 +1,8 @@
+<svg width="400" height="600" viewBox="0 0 400 600" xmlns="http://www.w3.org/2000/svg">
+  <rect width="400" height="600" rx="24" fill="#111" />
+  <circle cx="200" cy="200" r="110" fill="none" stroke="#e63946" stroke-width="18" />
+  <circle cx="200" cy="200" r="50" fill="#e63946" opacity="0.8" />
+  <rect x="60" y="340" width="280" height="160" fill="#222" stroke="#e63946" stroke-width="8" rx="18" />
+  <text x="50%" y="420" fill="#f1faee" font-family="'Helvetica Neue', sans-serif" font-size="72" font-weight="700" text-anchor="middle">1984</text>
+  <text x="50%" y="470" fill="#f1faee" font-family="'Helvetica Neue', sans-serif" font-size="26" text-anchor="middle">George Orwell</text>
+</svg>

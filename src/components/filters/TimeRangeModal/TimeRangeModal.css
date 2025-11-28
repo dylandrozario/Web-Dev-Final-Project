@@ -1,0 +1,175 @@
+.time-range-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: transparent;
+  z-index: 1999;
+  pointer-events: auto;
+}
+
+.time-range-modal-wrapper {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  margin-top: 0.5rem;
+  z-index: 2001;
+  pointer-events: none;
+}
+
+.time-range-modal {
+  background: linear-gradient(135deg, rgba(74, 20, 20, 0.95) 0%, rgba(107, 31, 31, 0.95) 100%);
+  border: 1px solid rgba(184, 148, 31, 0.3);
+  border-radius: 8px;
+  width: 100%;
+  max-height: 500px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+  color: var(--white);
+  overflow-y: auto;
+  overflow-x: hidden;
+  pointer-events: auto;
+}
+
+/* Radio Options List */
+.time-range-radio-group {
+  display: flex;
+  flex-direction: column;
+  padding: 0.5rem 0;
+}
+
+.time-range-radio-option {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+  border-bottom: 1px solid rgba(184, 148, 31, 0.2);
+}
+
+.time-range-radio-option:last-child {
+  border-bottom: none;
+}
+
+.time-range-radio-option:hover {
+  background: rgba(184, 148, 31, 0.1);
+}
+
+.time-range-radio-option input[type="radio"] {
+  width: 20px;
+  height: 20px;
+  cursor: pointer;
+  margin-top: 2px;
+  flex-shrink: 0;
+  accent-color: var(--gold);
+}
+
+.time-range-radio-option input[type="radio"]:checked {
+  accent-color: var(--gold);
+}
+
+.time-range-option-content {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  flex: 1;
+}
+
+.time-range-option-label {
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: var(--white);
+}
+
+.time-range-option-description {
+  font-size: 0.8rem;
+  color: rgba(255, 255, 255, 0.7);
+  line-height: 1.4;
+}
+
+/* Custom Range Section */
+.custom-range-section {
+  padding: 1rem;
+  border-top: 1px solid rgba(184, 148, 31, 0.2);
+  background: rgba(0, 0, 0, 0.1);
+}
+
+.custom-range-inputs {
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.custom-range-input-group {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.custom-range-input-group label {
+  font-size: 0.85rem;
+  color: rgba(255, 255, 255, 0.8);
+  font-weight: 500;
+}
+
+.custom-range-input-group input {
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: var(--white);
+  padding: 0.75rem;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  transition: all 0.2s ease;
+}
+
+.custom-range-input-group input::placeholder {
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.custom-range-input-group input:focus {
+  outline: none;
+  background: rgba(255, 255, 255, 0.15);
+  border-color: var(--gold);
+  box-shadow: 0 0 0 3px rgba(184, 148, 31, 0.2);
+}
+
+.custom-range-submit-btn {
+  width: 100%;
+  background: var(--gold);
+  color: var(--dark-maroon);
+  border: none;
+  padding: 0.75rem 1rem;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.custom-range-submit-btn:hover:not(:disabled) {
+  background: var(--light-gold);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(184, 148, 31, 0.4);
+}
+
+.custom-range-submit-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .time-range-modal {
+    min-width: 90vw;
+    max-width: 90vw;
+  }
+
+  .time-range-radio-option {
+    padding: 0.875rem 1.25rem;
+  }
+
+  .custom-range-inputs {
+    flex-direction: column;
+  }
+}
+

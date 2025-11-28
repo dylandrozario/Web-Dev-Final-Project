@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import { useState } from 'react'
 import styles from './FilterGroup.module.css'
 
 const FilterGroup = ({ id, title, options, selectedFilters, onFilterChange }) => {

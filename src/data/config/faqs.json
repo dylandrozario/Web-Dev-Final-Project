@@ -1,0 +1,27 @@
+[
+  {
+    "question": "How do I search for books?",
+    "answer": "You can use the search bar in the navigation or visit the Advanced Search page to filter books by genre, author, rating, and more."
+  },
+  {
+    "question": "How do I check out a book?",
+    "answer": "Visit any book's details page to see library availability. If the book is available at a library, click the 'Checkout' button for that location."
+  },
+  {
+    "question": "Can I save books to my library?",
+    "answer": "Yes! Sign in to your account and you can save books to your personal library for easy access later."
+  },
+  {
+    "question": "How are book ratings calculated?",
+    "answer": "Book ratings are based on user reviews and ratings. Each book displays a score out of 5 stars based on community feedback."
+  },
+  {
+    "question": "What libraries are included?",
+    "answer": "We track availability at O'Neill Library, Burns Library, Bapst Library, and the Law Library."
+  },
+  {
+    "question": "How do I leave a review?",
+    "answer": "Navigate to a book's details page and scroll to the comments section. Sign in to leave your review and rating."
+  }
+]
+

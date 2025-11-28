@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import { useState } from 'react'
 import styles from './SearchForm.module.css'
 
 const SearchForm = ({ onSearch }) => {
@@ -14,10 +14,15 @@ const SearchForm = ({ onSearch }) => {
   const handleChange = (e) => {
     const value = e.target.value
     setSearchTerm(value)
-    // Call onSearch immediately to handle clearing
+    // Call onSearch immediately to handle clearing and real-time search
     if (onSearch) {
       onSearch(value.trim())
     }
+  }
+
+  const handleDropdownClick = (e) => {
+    e.stopPropagation()
+    // TODO: Implement dropdown menu functionality
   }
 
   return (

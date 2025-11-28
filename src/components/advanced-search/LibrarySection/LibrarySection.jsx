@@ -1,4 +1,3 @@
-import React from 'react'
 import FiltersSidebar from '../FiltersSidebar/FiltersSidebar'
 import BooksGrid from '../BooksGrid/BooksGrid'
 import styles from './LibrarySection.module.css'

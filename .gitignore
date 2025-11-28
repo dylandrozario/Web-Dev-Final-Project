@@ -1,3 +1,8 @@
+# Local auth data / env secrets
+src/data/config/users.json
+.env
+.env.local
+.env.*.local
 # Logs
 logs
 *.log

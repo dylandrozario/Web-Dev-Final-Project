@@ -1,4 +1,3 @@
-import React from 'react'
 import BookCard from '../BookCard/BookCard'
 import styles from './TrendingSection.module.css'
 

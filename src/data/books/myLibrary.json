@@ -1,0 +1,68 @@
+[
+  {
+    "id": 1,
+    "tag": "Favorite",
+    "title": "Kindred",
+    "author": "Octavia E. Butler",
+    "isbn": "978-0-8070-8369-7",
+    "ratingLabel": "★★★★★",
+    "description": "A classic time-travel narrative that explores slavery, memory, and inherited trauma.",
+    "saved": true,
+    "favorite": true,
+    "rated": true,
+    "reviewed": false
+  },
+  {
+    "id": 2,
+    "tag": "Reviewed",
+    "title": "The Body Keeps the Score",
+    "author": "Bessel van der Kolk",
+    "isbn": "978-0-670-78593-3",
+    "ratingLabel": "★★★★☆",
+    "description": "A deep dive into trauma, the brain, and approaches to healing that combine science and practice.",
+    "saved": true,
+    "favorite": false,
+    "rated": true,
+    "reviewed": true
+  },
+  {
+    "id": 3,
+    "tag": "Saved",
+    "title": "Algorithms of Oppression",
+    "author": "Safiya Umoja Noble",
+    "isbn": "978-1-4798-4998-1",
+    "ratingLabel": "—",
+    "description": "Examines how search engines reinforce racism and bias, especially against Black women and girls.",
+    "saved": true,
+    "favorite": false,
+    "rated": false,
+    "reviewed": false
+  },
+  {
+    "id": 4,
+    "tag": "Favorite",
+    "title": "The Left Hand of Darkness",
+    "author": "Ursula K. Le Guin",
+    "isbn": "978-0-441-47812-5",
+    "ratingLabel": "★★★★★",
+    "description": "A foundational sci-fi novel that explores gender, politics, and power on the icy planet Gethen.",
+    "saved": true,
+    "favorite": true,
+    "rated": true,
+    "reviewed": true
+  },
+  {
+    "id": 5,
+    "tag": "Rated",
+    "title": "Invisible Man",
+    "author": "Ralph Ellison",
+    "isbn": "978-0-679-60139-5",
+    "ratingLabel": "★★★★☆",
+    "description": "A powerful exploration of identity, race, and invisibility in twentieth-century America.",
+    "saved": true,
+    "favorite": false,
+    "rated": true,
+    "reviewed": false
+  }
+]
+
