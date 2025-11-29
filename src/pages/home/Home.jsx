@@ -2,7 +2,6 @@ import { useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import resourcesData from '../../data/resources/resources.json'
 import APP_CONFIG from '../../config/constants'
-import AIAssistant from '../../components/common/AIAssistant'
 import { useBooks } from '../../context/BooksContext'
 import './Home.css'
 
@@ -59,9 +58,6 @@ function Home() {
   return (
     <div className="home">
       <div className="home-content">
-        {/* AI Floating Button */}
-        <AIAssistant />
-
         {/* NEW RELEASES Section - AOTY Style */}
         <section className="new-releases-section">
           <div className="section-header-aoty">

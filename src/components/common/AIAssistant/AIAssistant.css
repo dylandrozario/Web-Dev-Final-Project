@@ -89,8 +89,8 @@
   color: var(--white);
   cursor: pointer;
   padding: 0;
-  width: 30px;
-  height: 30px;
+  width: 20px;
+  height: 20px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -99,8 +99,8 @@
 }
 
 .ai-chat-close svg {
-  width: 20px;
-  height: 20px;
+  width: 14px;
+  height: 14px;
 }
 
 .ai-chat-close:hover {

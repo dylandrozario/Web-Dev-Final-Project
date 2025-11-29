@@ -2,6 +2,7 @@ import { Routes, Route, useParams } from 'react-router-dom'
 import { useMemo } from 'react'
 import Navbar from './components/common/Navbar'
 import ScrollToTop from './components/common/ScrollToTop/ScrollToTop'
+import AIAssistant from './components/common/AIAssistant'
 import Home from './pages/home'
 import AdvancedSearch from './pages/advanced-search'
 import BookDetails from './pages/book-details/BookDetails'
@@ -51,6 +52,7 @@ function App() {
     <div className="App">
       <ScrollToTop />
       <Navbar />
+      <AIAssistant />
       <Routes>
         <Route path="/" element={<Home />} />
         <Route path="/sign-in" element={<SignIn />} />
