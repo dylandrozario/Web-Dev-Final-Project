@@ -223,12 +223,46 @@
 
 .book-card-rating {
   margin: 0 0 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.rating-value {
+  color: var(--gold);
+  font-size: 1rem;
+  font-weight: 600;
 }
 
 .rating-stars {
   color: var(--gold);
   font-size: 1.1rem;
   letter-spacing: 0.1rem;
+}
+
+.book-card-review {
+  margin: 0 0 1rem;
+  padding: 1rem;
+  background: rgba(255, 255, 255, 0.05);
+  border-left: 3px solid var(--gold);
+  border-radius: 6px;
+}
+
+.review-label {
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1rem;
+  color: var(--gold);
+  font-weight: 600;
+  margin: 0 0 0.5rem;
+}
+
+.review-text {
+  font-size: 0.95rem;
+  color: rgba(255, 255, 255, 0.9);
+  line-height: 1.6;
+  margin: 0;
+  font-style: italic;
 }
 
 .book-card-description {

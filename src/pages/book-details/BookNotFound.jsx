@@ -142,7 +142,7 @@ export default function BookNotFound() {
                   <span className="spec-value">{APP_CONFIG.DEFAULT_ESTIMATED_PAGES}</span>
                 </div>
                 <div className="spec-item">
-                  <span className="spec-label">Read Time*:</span>
+                  <span className="spec-label">Read Time:</span>
                   <span className="spec-value">{readTimeMinutes} minutes</span>
                 </div>
                 <div className="spec-item">

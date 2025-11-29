@@ -35,6 +35,27 @@ function Home() {
   // Memoize sliced arrays to avoid recalculation
   const displayedNewReleases = useMemo(() => booksWithScores.slice(0, 14), [booksWithScores])
 
+  // Helper functions for resource card styling
+  const getCategoryColor = (category) => {
+    const colors = {
+      event: '#4A90E2',
+      service: '#50C878',
+      guide: '#FF6B6B',
+      database: '#9B59B6'
+    }
+    return colors[category] || '#6C757D'
+  }
+
+  const getCategoryIcon = (category) => {
+    const icons = {
+      event: '📅',
+      service: '🛎️',
+      guide: '📖',
+      database: '💾'
+    }
+    return icons[category] || '📚'
+  }
+
   return (
     <div className="home">
       <div className="home-content">
@@ -95,33 +116,21 @@ function Home() {
             </button>
           </div>
           <div className="newsworthy-grid">
-            {resourcesData.map((item) => (
+            {resourcesData.slice(0, 3).map((item) => (
               <article 
                 key={item.id} 
                 className="newsworthy-card"
-                onClick={() => navigate(`/resources/${item.id}`)}
               >
-                <div className="newsworthy-image" style={{ backgroundColor: item.color }}>
-                  <div className="resource-icon">{item.icon}</div>
+                <div className="newsworthy-image" style={{ backgroundColor: getCategoryColor(item.category) }}>
+                  <div className="resource-icon">{getCategoryIcon(item.category)}</div>
                 </div>
                 <div className="newsworthy-content">
-                  <p className="newsworthy-source">Library Resources</p>
+                  <p className="newsworthy-source">{item.tag}</p>
                   <h3 className="newsworthy-title">{item.title}</h3>
-                  <p className="newsworthy-description">{item.description}</p>
-                  <div className="newsworthy-stats">
-                    <span className="stat-item">
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                        <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
-                      </svg>
-                      {item.likes}
-                    </span>
-                    <span className="stat-item">
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
-                      </svg>
-                      {item.comments}
-                    </span>
-                  </div>
+                  <p className="newsworthy-description">{item.body}</p>
+                  <p className="newsworthy-meta" style={{ fontSize: '0.85rem', color: 'rgba(255, 255, 255, 0.7)', marginTop: '0.5rem' }}>
+                    {item.meta}
+                  </p>
                 </div>
               </article>
             ))}

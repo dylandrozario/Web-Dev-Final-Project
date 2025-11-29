@@ -1,13 +1,40 @@
 import { useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { FaHeart, FaBookmark } from 'react-icons/fa'
+import { useUserLibrary } from '../../../context/UserLibraryContext'
 import styles from './BookCard.module.css'
 
 const BookCard = ({ book, variant = 'grid' }) => {
   const navigate = useNavigate()
+  const { favoriteBook, unfavoriteBook, saveBook, unsaveBook, getBookStatus } = useUserLibrary()
 
   const handleCardClick = useCallback(() => {
     navigate(`/book/isbn/${book.isbn}`)
   }, [navigate, book.isbn])
+
+  const handleFavorite = useCallback((e) => {
+    e.stopPropagation()
+    const status = getBookStatus(book.isbn)
+    if (status.favorite) {
+      unfavoriteBook(book.isbn)
+    } else {
+      favoriteBook(book)
+    }
+  }, [favoriteBook, unfavoriteBook, getBookStatus, book])
+
+  const handleSaved = useCallback((e) => {
+    e.stopPropagation()
+    const status = getBookStatus(book.isbn)
+    if (status.saved) {
+      unsaveBook(book.isbn)
+    } else {
+      saveBook(book)
+    }
+  }, [saveBook, unsaveBook, getBookStatus, book])
+
+  const status = getBookStatus(book.isbn)
+  const favorited = status.favorite
+  const saved = status.saved
 
   return (
     <article 
@@ -41,10 +68,29 @@ const BookCard = ({ book, variant = 'grid' }) => {
             <span>{book.title?.charAt(0) || '?'}</span>
           </div>
         )}
+        <div className={styles.bookActions}>
+          <button
+            className={`${styles.bookActionBtn} ${styles.heartBtn} ${favorited ? styles.active : ''}`}
+            onClick={handleFavorite}
+            aria-label={favorited ? 'Remove from favorites' : 'Add to favorites'}
+          >
+            <FaHeart />
+          </button>
+          <button
+            className={`${styles.bookActionBtn} ${styles.bookmarkBtn} ${saved ? styles.active : ''}`}
+            onClick={handleSaved}
+            aria-label={saved ? 'Remove from saved' : 'Save book'}
+          >
+            <FaBookmark />
+          </button>
+        </div>
       </div>
       <div className={styles.bookInfo}>
         <h3 className={styles.bookTitle}>{book.title || 'Book Title'}</h3>
         <p className={styles.bookAuthor}>{book.author || 'Author Name'}</p>
+        <div className={styles.bookAvailabilityRow}>
+          <span className={styles.bookAvailability}>Availability: {book.availability || 1}</span>
+        </div>
       </div>
     </article>
   )

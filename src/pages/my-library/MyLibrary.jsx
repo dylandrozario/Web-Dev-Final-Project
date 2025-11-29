@@ -207,14 +207,23 @@ export default function MyLibrary() {
             )}
             <h3 className="book-card-title">{book.title}</h3>
             <p className="book-card-author">{book.author}</p>
-            <div className="book-card-rating">
-              {book.ratingLabel && book.ratingLabel !== '—' ? (
-                <span className="rating-stars">{book.ratingLabel}</span>
-              ) : (
-                <span className="rating-stars">—</span>
-              )}
-            </div>
-            <p className="book-card-description">{book.description || 'No description available.'}</p>
+            {book.reviewed && book.rating && (
+              <div className="book-card-rating">
+                <span className="rating-value">Your Rating: {book.rating.toFixed(1)} / 5</span>
+                {book.ratingLabel && book.ratingLabel !== '—' && (
+                  <span className="rating-stars">{book.ratingLabel}</span>
+                )}
+              </div>
+            )}
+            {book.reviewed && book.review && (
+              <div className="book-card-review">
+                <p className="review-label">Your Review:</p>
+                <p className="review-text">{book.review}</p>
+              </div>
+            )}
+            {!book.reviewed && (
+              <p className="book-card-description">{book.description || 'No description available.'}</p>
+            )}
             <div className="book-card-badges">
               {book.saved && <span className="book-badge">Saved</span>}
               {book.favorite && <span className="book-badge">Favorite</span>}

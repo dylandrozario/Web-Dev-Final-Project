@@ -132,7 +132,6 @@ export default function BookDetails() {
   const [heartedReviews, setHeartedReviews] = useState({})
   const [heartedReplies, setHeartedReplies] = useState({})
 
-
   const recentReviews = useMemo(() => {
     return [...userReviews].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)).slice(0, 3)
   }, [userReviews])
@@ -346,7 +345,7 @@ export default function BookDetails() {
                   <span className="spec-value">{book.pages || APP_CONFIG.DEFAULT_ESTIMATED_PAGES}</span>
                 </div>
                 <div className="spec-item">
-                  <span className="spec-label">Read Time*:</span>
+                  <span className="spec-label">Read Time:</span>
                   <span className="spec-value">{readTimeMinutes ? `${readTimeMinutes} minutes` : 'Not available'}</span>
                 </div>
                 <div className="spec-item">
@@ -364,7 +363,6 @@ export default function BookDetails() {
               </div>
             </div>
           </div>
-
         </div>
 
         {/* Reviews Board */}

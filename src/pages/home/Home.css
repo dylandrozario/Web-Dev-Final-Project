@@ -266,7 +266,7 @@
 }
 
 .newsworthy-card {
-  cursor: pointer;
+  /* Removed cursor: pointer - cards are not clickable on home page */
   background: rgba(255, 255, 255, 0.03);
   border-radius: 8px;
   overflow: hidden;

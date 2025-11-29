@@ -1,15 +1,20 @@
 import { useState } from 'react'
 import styles from './FilterGroup.module.css'
 
-const FilterGroup = ({ id, title, options, selectedFilters, onFilterChange }) => {
+const FilterGroup = ({ id, title, options, selectedFilters, onFilterChange, isRadio = false }) => {
   const [isExpanded, setIsExpanded] = useState(false)
 
   const handleToggle = () => {
     setIsExpanded(!isExpanded)
   }
 
-  const handleCheckboxChange = (value, checked) => {
-    onFilterChange(value, checked)
+  const handleChange = (value, checked) => {
+    if (isRadio) {
+      // For radio buttons, always pass true when selected
+      onFilterChange(value, true)
+    } else {
+      onFilterChange(value, checked)
+    }
   }
 
   return (
@@ -27,10 +32,14 @@ const FilterGroup = ({ id, title, options, selectedFilters, onFilterChange }) =>
           {options.map((option) => (
             <label key={option.value} className={styles.filterCheckbox}>
               <input
-                type="checkbox"
+                type={isRadio ? "radio" : "checkbox"}
+                name={isRadio ? id : undefined}
                 value={option.value}
-                checked={selectedFilters.includes(option.value)}
-                onChange={(e) => handleCheckboxChange(option.value, e.target.checked)}
+                checked={isRadio 
+                  ? selectedFilters.includes(option.value)
+                  : selectedFilters.includes(option.value)
+                }
+                onChange={(e) => handleChange(option.value, e.target.checked)}
               />
               <span>{option.label}</span>
             </label>

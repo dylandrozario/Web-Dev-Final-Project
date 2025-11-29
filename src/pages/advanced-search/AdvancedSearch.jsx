@@ -1,24 +1,25 @@
-import { useState, useCallback, useMemo } from 'react'
+import { useState, useCallback, useMemo, useEffect, useRef } from 'react'
+import { useLocation } from 'react-router-dom'
+import Fuse from 'fuse.js'
 import TrendingSection from '../../components/advanced-search/TrendingSection/TrendingSection'
 import LibrarySection from '../../components/advanced-search/LibrarySection/LibrarySection'
 import SearchForm from '../../components/advanced-search/SearchForm/SearchForm'
 import { useBooks } from '../../context/BooksContext'
-import { naturalLanguageSearch, shouldUseNLSearch, initializeSearchIndex } from '../../utils/nlSearch'
-import { generateBookDescription } from '../../utils/bookUtils'
 import styles from './AdvancedSearch.module.css'
 
 function AdvancedSearch() {
   const location = useLocation()
   const { books: booksData } = useBooks()
   const [searchTerm, setSearchTerm] = useState('')
+  const librarySectionRef = useRef(null)
   const [filters, setFilters] = useState({
     category: [],
     languages: [],
     age: [],
-    availability: []
+    availability: [],
+    sortBy: null
   })
 
-  // Handle state passed from navigation (e.g., footer links)
   useEffect(() => {
     if (location.state) {
       if (location.state.genre) {
@@ -28,7 +29,10 @@ function AdvancedSearch() {
         }))
       }
       if (location.state.sortBy) {
-        // Could implement sorting logic here
+        setFilters(prev => ({
+          ...prev,
+          sortBy: location.state.sortBy
+        }))
       }
     }
   }, [location.state])
@@ -51,26 +55,59 @@ function AdvancedSearch() {
         rating: book.rating,
         releaseDate: book.releaseDate,
         image: book.image,
-        publisher: book.publisher,
-        description: book.description || generateBookDescription(book)
+        description: book.description || '', // Include description for fuzzy search
+        publisher: book.publisher || null
       }
     })
-    
-    // Initialize search index when books are loaded
-    if (mapped.length > 0) {
-      initializeSearchIndex(mapped)
-    }
     
     return mapped
   }, [booksData])
 
+  // fuzzy search on book summaries/descriptions
+  const fuse = useMemo(() => {
+    if (!allBooks || allBooks.length === 0) return null
+    
+    return new Fuse(allBooks, {
+      keys: [
+        { name: 'title', weight: 0.4 },
+        { name: 'author', weight: 0.3 },
+        { name: 'description', weight: 0.2 },
+        { name: 'genre', weight: 0.1 }
+      ],
+      threshold: 0.4, // 0.0 = exact match, 1.0 = match anything
+      includeScore: true,
+      minMatchCharLength: 2,
+      ignoreLocation: true, // Search across entire string
+      findAllMatches: true
+    })
+  }, [allBooks])
+
   const handleSearch = useCallback((term) => {
     setSearchTerm(term)
+    // Reset filters when search is cleared
+    if (!term || term.trim() === '') {
+      setFilters({
+        category: [],
+        languages: [],
+        age: [],
+        availability: [],
+        sortBy: null
+      })
+    }
   }, [])
 
 
   const handleFilterChange = useCallback((filterGroup, value, checked) => {
     setFilters(prev => {
+      // For sortBy, it's a single value (not an array)
+      if (filterGroup === 'sortBy') {
+        return {
+          ...prev,
+          sortBy: checked ? value : null
+        }
+      }
+      
+      // For other filters, use array
       const currentFilters = prev[filterGroup] || []
       const newFilters = checked
         ? [...currentFilters, value]
@@ -83,7 +120,21 @@ function AdvancedSearch() {
     })
   }, [])
 
-  // Filter books based on search term and filters - optimized with NL search
+  // Get unique genres from books for dynamic category filters
+  const availableGenres = useMemo(() => {
+    const genres = new Set()
+    allBooks.forEach(book => {
+      if (book.genre) {
+        const genre = book.genre.toLowerCase().trim()
+        if (genre) {
+          genres.add(genre)
+        }
+      }
+    })
+    return Array.from(genres).sort()
+  }, [allBooks])
+
+  // Filter books based on search term and filters - using Fuse.js for fuzzy search
   const filteredBooks = useMemo(() => {
     const searchTermTrimmed = searchTerm.trim()
     const hasCategoryFilter = filters.category.length > 0
@@ -91,75 +142,35 @@ function AdvancedSearch() {
     const hasInStock = filters.availability.includes('in-stock')
     const hasNotInStock = filters.availability.includes('not-in-stock')
 
-    // Determine search results
     let searchResults = allBooks
-    
-    if (searchTermTrimmed) {
-      // Use natural language search if appropriate
-      if (shouldUseNLSearch(searchTermTrimmed)) {
-        const nlResults = naturalLanguageSearch(searchTermTrimmed, allBooks)
-        // If NL search found results, use them; otherwise fall back to simple search
-        if (nlResults.length > 0) {
-          searchResults = nlResults
-        } else {
-          // Fallback to simple search
-          const lowerSearch = searchTermTrimmed.toLowerCase()
-          searchResults = allBooks.filter(book => 
-            book.title.toLowerCase().includes(lowerSearch) ||
-            book.author.toLowerCase().includes(lowerSearch) ||
-            book.isbn.includes(searchTermTrimmed)
-          )
-        }
-      } else {
-        // Simple exact/partial match for short queries
-        const lowerSearch = searchTermTrimmed.toLowerCase()
-        searchResults = allBooks.filter(book => 
-          book.title.toLowerCase().includes(lowerSearch) ||
-          book.author.toLowerCase().includes(lowerSearch) ||
-          book.isbn.includes(searchTermTrimmed)
-        )
-      }
-      
-      // Additional validation: ensure results actually contain the search term
-      // This filters out any false positives from fuzzy matching
-      // Description is now a primary search field
+
+    // Use Fuse.js for fuzzy search if search term exists
+    if (searchTermTrimmed && fuse) {
+      const fuseResults = fuse.search(searchTermTrimmed)
+      searchResults = fuseResults.map(result => result.item)
+    } else if (searchTermTrimmed) {
+      // Fallback to simple search if Fuse.js not initialized
       const lowerSearch = searchTermTrimmed.toLowerCase()
-      const searchWords = lowerSearch.split(/\s+/).filter(w => w.length > 0)
-      
-      searchResults = searchResults.filter(book => {
-        const title = (book.title || '').toLowerCase()
-        const author = (book.author || '').toLowerCase()
-        const genre = (book.genre || '').toLowerCase()
-        const description = (book.description || '').toLowerCase()
-        const combined = `${title} ${author} ${genre} ${description}`.toLowerCase()
-        
-        // For single word queries, check if it appears in any field including description
-        if (searchWords.length === 1) {
-          return title.includes(searchWords[0]) || 
-                 author.includes(searchWords[0]) || 
-                 genre.includes(searchWords[0]) ||
-                 description.includes(searchWords[0])
-        }
-        
-        // For multi-word queries, at least one word must match in any field including description
-        return searchWords.some(word => 
-          description.includes(word) ||
-          title.includes(word) || 
-          author.includes(word) || 
-          genre.includes(word)
-        )
-      })
+      searchResults = allBooks.filter(book => 
+        book.title.toLowerCase().includes(lowerSearch) ||
+        book.author.toLowerCase().includes(lowerSearch) ||
+        book.isbn.includes(searchTermTrimmed) ||
+        (book.description && book.description.toLowerCase().includes(lowerSearch))
+      )
     }
 
-    // Apply filters to search results
-    return searchResults.filter(book => {
+    // Apply category and availability filters
+    let filtered = searchResults.filter(book => {
       // Category filter
       if (hasCategoryFilter) {
-        const bookGenre = book.genre || 'fiction'
+        const bookGenre = (book.genre || 'fiction').toLowerCase().trim()
         const matchesCategory = filters.category.some(cat => {
-          if (cat === 'fiction') return bookGenre === 'fiction'
-          if (cat === 'non-fiction') return bookGenre === 'non-fiction'
-          return bookGenre === cat
+          const catLower = cat.toLowerCase().trim()
+          // Handle common variations
+          if (catLower === 'fiction' || catLower === 'non-fiction') {
+            return bookGenre === catLower || bookGenre.includes(catLower)
+          }
+          return bookGenre === catLower || bookGenre.includes(catLower) || catLower.includes(bookGenre)
         })
         if (!matchesCategory) return false
       }
@@ -172,7 +183,32 @@ function AdvancedSearch() {
 
       return true
     })
-  }, [allBooks, searchTerm, filters])
+
+    // Apply sorting
+    if (filters.sortBy) {
+      filtered = [...filtered].sort((a, b) => {
+        if (filters.sortBy === 'popular') {
+          // Sort by rating (highest first)
+          return (b.rating || 0) - (a.rating || 0)
+        } else if (filters.sortBy === 'new') {
+          // Sort by release date (newest first)
+          return new Date(b.releaseDate) - new Date(a.releaseDate)
+        } else if (filters.sortBy === 'oldest') {
+          // Sort by release date (oldest first)
+          return new Date(a.releaseDate) - new Date(b.releaseDate)
+        } else if (filters.sortBy === 'title') {
+          // Sort alphabetically by title
+          return a.title.localeCompare(b.title)
+        } else if (filters.sortBy === 'author') {
+          // Sort alphabetically by author
+          return a.author.localeCompare(b.author)
+        }
+        return 0
+      })
+    }
+
+    return filtered
+  }, [allBooks, searchTerm, filters, fuse])
 
   // Get trending books (top rated)
   const trendingBooks = useMemo(() => {
@@ -181,18 +217,33 @@ function AdvancedSearch() {
       .slice(0, 5)
   }, [allBooks])
 
+  // Scroll to library section when search starts
+  useEffect(() => {
+    if (searchTerm.trim() && librarySectionRef.current) {
+      // Small delay to ensure DOM is updated
+      setTimeout(() => {
+        librarySectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+      }, 100)
+    }
+  }, [searchTerm])
+
   return (
     <div className={styles.advancedSearch}>
       <div className={styles.searchHeader}>
         <SearchForm onSearch={handleSearch} />
       </div>
       <main className={styles.mainContent}>
-        <TrendingSection books={trendingBooks} />
-        <LibrarySection 
-          books={filteredBooks}
-          filters={filters}
-          onFilterChange={handleFilterChange}
-        />
+        {!searchTerm.trim() && (
+          <TrendingSection books={trendingBooks} />
+        )}
+        <div ref={librarySectionRef}>
+          <LibrarySection 
+            books={filteredBooks}
+            filters={filters}
+            onFilterChange={handleFilterChange}
+            availableGenres={availableGenres}
+          />
+        </div>
       </main>
     </div>
   )

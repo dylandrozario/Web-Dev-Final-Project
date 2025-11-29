@@ -5,11 +5,13 @@ import BookFilterModal from '../../components/filters/BookFilterModal'
 import TopFilterModal from '../../components/filters/TopFilterModal'
 import TimeRangeModal from '../../components/filters/TimeRangeModal'
 import { useBooks } from '../../context/BooksContext'
+import { useAuth } from '../../context/AuthContext'
 import './BookReviews.css'
 
 function BookReviews() {
   const navigate = useNavigate()
   const { books: booksData } = useBooks()
+  const { isAuthenticated, user } = useAuth()
   const [timeFilter, setTimeFilter] = useState('all-time')
   const [viewMode, setViewMode] = useState('list')
   const [currentPage, setCurrentPage] = useState(1)
@@ -179,10 +181,28 @@ function BookReviews() {
                 <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/>
               </svg>
             </button>
-            <button className="recommendations-btn" onClick={() => navigate('/sign-in')}>
+            <button 
+              className="recommendations-btn" 
+              onClick={() => {
+                if (isAuthenticated) {
+                  // User is logged in - could navigate to recommendations page or show recommendations
+                  // For now, navigate to My Library which shows their saved/rated books
+                  navigate('/my-library')
+                } else {
+                  // User not logged in - navigate to sign in
+                  navigate('/sign-in')
+                }
+              }}
+            >
               <div className="recommendations-btn-text">
-                <span className="recommendations-btn-title">Go to Recommendations</span>
-                <span className="recommendations-btn-subtitle">Sign in to see recommendations based on your ratings</span>
+                <span className="recommendations-btn-title">
+                  {isAuthenticated ? 'View My Recommendations' : 'Go to Recommendations'}
+                </span>
+                <span className="recommendations-btn-subtitle">
+                  {isAuthenticated 
+                    ? 'See personalized recommendations based on your ratings' 
+                    : 'Sign in to see recommendations based on your ratings'}
+                </span>
               </div>
             </button>
           </div>

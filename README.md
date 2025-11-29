@@ -13,10 +13,12 @@ AI-powered library catalog frontend with advanced search capabilities.
 
 ## Changes, additions, notes etc
 
-- pulled everything and combined all branches on my end
-- updated advanced search page for better book-grid display
-- update search feature so new & trending section disappears upon search, and so that filtered display resets when search input resets
-- updated resources, my library, and sign in page to match color scheme
+- merged my code with main
+- updated some ui features for better flow
+  - search bar with the new & trending was a bit wonky
+  - events section in main page was weird bc all cards led to the same web view
+- incorporated open library api since we couldnt for bc lib
+- fixed a sign in feature
 
 ## Getting Started
 
