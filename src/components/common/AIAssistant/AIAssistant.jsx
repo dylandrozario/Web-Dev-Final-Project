@@ -3,6 +3,8 @@ import { useNavigate } from 'react-router-dom'
 import { GoogleGenerativeAI } from '@google/generative-ai'
 import './AIAssistant.css'
 import { useBooks } from '../../../context/BooksContext'
+import { useUserLibrary } from '../../../context/UserLibraryContext'
+import { useAuth } from '../../../context/AuthContext'
 import userReviewsData from '../../../data/reviews/userReviews.json'
 import { generateBookDescription } from '../../../utils/bookUtils'
 
@@ -41,6 +43,8 @@ const initialMessage = {
 function AIAssistant() {
   const navigate = useNavigate()
   const { books } = useBooks()
+  const { library, getAllBooks } = useUserLibrary()
+  const { isAuthenticated } = useAuth()
   const [isOpen, setIsOpen] = useState(false)
   const [inputValue, setInputValue] = useState('')
   const [messages, setMessages] = useState([initialMessage])
@@ -75,37 +79,222 @@ function AIAssistant() {
     })
   }, [books])
 
+  // Analyze user's reading preferences from their library
+  const userPreferences = useMemo(() => {
+    if (!isAuthenticated || !library || Object.keys(library).length === 0) {
+      return null
+    }
+
+    const userBooks = getAllBooks()
+    if (userBooks.length === 0) {
+      return null
+    }
+
+    // Analyze genres
+    const genreCounts = {}
+    userBooks.forEach(book => {
+      if (book.genre) {
+        genreCounts[book.genre] = (genreCounts[book.genre] || 0) + 1
+      }
+    })
+    const topGenres = Object.entries(genreCounts)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 5)
+      .map(([genre]) => genre)
+
+    // Analyze ratings
+    const ratedBooks = userBooks.filter(book => book.rated && book.rating)
+    const avgUserRating = ratedBooks.length > 0
+      ? ratedBooks.reduce((sum, book) => sum + (book.rating || 0), 0) / ratedBooks.length
+      : null
+    const favoriteBooks = userBooks.filter(book => book.favorite)
+    const savedBooks = userBooks.filter(book => book.saved)
+    const reviewedBooks = userBooks.filter(book => book.reviewed && book.review)
+
+    // Extract themes from reviews
+    const reviewTexts = reviewedBooks
+      .map(book => book.review)
+      .filter(Boolean)
+      .join(' ')
+
+    // Analyze authors
+    const authorCounts = {}
+    userBooks.forEach(book => {
+      if (book.author) {
+        authorCounts[book.author] = (authorCounts[book.author] || 0) + 1
+      }
+    })
+    const favoriteAuthors = Object.entries(authorCounts)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 3)
+      .map(([author]) => author)
+
+    return {
+      totalBooks: userBooks.length,
+      topGenres,
+      avgUserRating,
+      favoriteBooks: favoriteBooks.map(b => ({ title: b.title, author: b.author, genre: b.genre, rating: b.rating })),
+      savedBooks: savedBooks.map(b => ({ title: b.title, author: b.author, genre: b.genre })),
+      ratedBooks: ratedBooks.map(b => ({ title: b.title, author: b.author, genre: b.genre, rating: b.rating })),
+      reviewedBooks: reviewedBooks.map(b => ({ title: b.title, author: b.author, genre: b.genre, review: b.review })),
+      reviewTexts,
+      favoriteAuthors
+    }
+  }, [isAuthenticated, library, getAllBooks])
+
   const siteContext = useMemo(() => {
     // Create detailed book information for recommendations
     const bookDetails = enrichedBooks.map(book => {
       const topReviews = book.reviews.slice(0, 2).map(r => r.text).join(' | ')
       return `Title: ${book.title} | Author: ${book.author} | Genre: ${book.genre || 'Fiction'} | Rating: ${book.avgRating}/5 | Pages: ${book.pages || 'N/A'} | Publisher: ${book.publisher || 'N/A'} | Description: ${book.description} | Reviews: ${topReviews} | ISBN: ${book.isbn}`
     }).join('\n')
+
+    // Build user preferences section
+    let userPreferencesSection = ''
+    if (userPreferences) {
+      const prefs = userPreferences
+      userPreferencesSection = [
+        '',
+        'USER READING PREFERENCES (use these to personalize recommendations):',
+        `- Total books in library: ${prefs.totalBooks}`,
+        prefs.topGenres.length > 0 ? `- Favorite genres: ${prefs.topGenres.join(', ')}` : '',
+        prefs.avgUserRating ? `- Average rating given: ${prefs.avgUserRating.toFixed(1)}/5` : '',
+        prefs.favoriteAuthors.length > 0 ? `- Favorite authors: ${prefs.favoriteAuthors.join(', ')}` : '',
+        prefs.favoriteBooks.length > 0 ? `- Favorite books (${prefs.favoriteBooks.length}): ${prefs.favoriteBooks.slice(0, 5).map(b => `${b.title} by ${b.author}${b.rating ? ` (rated ${b.rating}/5)` : ''}`).join('; ')}` : '',
+        prefs.ratedBooks.length > 0 ? `- Rated books (${prefs.ratedBooks.length}): ${prefs.ratedBooks.slice(0, 5).map(b => `${b.title} by ${b.author} (${b.rating}/5)`).join('; ')}` : '',
+        prefs.reviewedBooks.length > 0 ? `- Reviewed books (${prefs.reviewedBooks.length}): ${prefs.reviewedBooks.slice(0, 3).map(b => `${b.title} by ${b.author}`).join('; ')}` : '',
+        prefs.reviewTexts ? `- Themes from user reviews: ${prefs.reviewTexts.substring(0, 500)}` : '',
+        '',
+        'When making recommendations, prioritize:',
+        '1. Books in the user\'s favorite genres',
+        '2. Books by authors the user has favorited or rated highly',
+        '3. Books with similar themes to what the user has reviewed',
+        '4. Books with ratings similar to what the user typically rates',
+        '5. Books similar to the user\'s favorites or highly-rated books'
+      ].filter(Boolean).join('\n')
+    }
     
     return [
-      'You are the BC Library Catalog AI assistant. You ONLY answer questions about this website and its features.',
+      'You are the BC Library Catalog AI assistant. You answer questions about this website, its features, AND Boston College libraries, services, and resources.',
       '',
       'CRITICAL RULES:',
       '1. If user says "take me to X" or "go to X" where X is a page name → Navigate to that page',
-      '2. If user says "what is X" or "tell me about X" → Provide explanation in chat (do NOT navigate)',
-      '3. If user says "take me to X book" or "show me X book" where X is a book title → Navigate to that book\'s details page',
-      '4. If user asks to "find a book", "recommend a book", "I want a book about X", "suggest a book", "help me find", or similar → Recommend books based on their preferences, matching by genre, rating, reviews, description, and specifications',
-      '5. If the request is not about this website or cannot be understood → Respond with "Sorry, I couldn\'t understand that. I can only help with questions about this website, its pages, and books available here."',
+      '2. If user says "book a study room", "reserve a study room", "book study room", or similar phrases about study rooms → Navigate to /resources page',
+      '3. If user says "what is X" or "tell me about X" → Provide explanation in chat (do NOT navigate)',
+      '4. If user says "take me to X book" or "show me X book" where X is a book title → Navigate to that book\'s details page',
+      '5. If user asks to "find a book", "recommend a book", "I want a book about X", "suggest a book", "help me find", or similar → Recommend books based on their preferences, matching by genre, rating, reviews, description, and specifications',
+      '6. If user asks about BC libraries, study spaces, hours, services, printing, borrowing, or any library-related questions → Answer using the BC Library knowledge base below',
+      '7. If the request is not about this website, BC libraries, or cannot be understood → Respond with "Sorry, I couldn\'t understand that. I can help with questions about this website, BC libraries, and books available here."',
+      '',
+      'BOSTON COLLEGE LIBRARIES KNOWLEDGE BASE:',
+      '',
+      '## Libraries Overview:',
+      'Boston College has 8 libraries with nearly 3 million volumes:',
+      '- O\'Neill Library: Main research library on Chestnut Hill campus, over 1,400 seats',
+      '- Bapst Library: Quiet/art-focused library with Gothic architecture, 400 quiet study spaces, 51,000+ volumes on art/architecture/museum studies/photography',
+      '- Burns Library: Rare books and special collections, 300,000+ books, 17 million rare manuscripts/artifacts, largest Irish collection in Western Hemisphere',
+      '- Educational Resource Center (ERC): K-12 education resources, interactive technology room, 50-seat multimedia classroom',
+      '- Law Library: 500,000+ volumes, 400+ online databases (Bloomberg Law, LexisNexis, Westlaw), restricted to Law School students',
+      '- Social Work Library: Group study spaces, charging stations, technology lab in McGuinn Hall',
+      '- Theology & Ministry Library: 250,000 volumes on biblical studies, Catholic theology, canon law, Jesuitica',
+      '- O\'Connor Library: Earth sciences materials (seismology, geology, geophysics) at Weston Observatory, access by appointment',
+      '',
+      '## Study Spaces & Environments:',
+      '',
+      'O\'Neill Library:',
+      '- 1,400+ seats: individual carrels, lounge chairs, tables, group-study rooms',
+      '- Quiet study: Levels 4 and 5 (and some parts of level 3) designated for quiet/individual study',
+      '- Group/collaborative spaces:',
+      '  * Group study rooms on 5th floor (whiteboards, projection, seating for ~6) - reservable',
+      '  * 1st floor collaboration room, 3rd floor group tables',
+      '- Graduate-only spaces: graduate reading room (4th floor) and graduate-only group study room (Room 511)',
+      '',
+      'Bapst Library:',
+      '- Quiet-study oriented:',
+      '  * Gargan Hall (4th floor): Large quiet reading/study room with oak tables and stained glass, books with certain call numbers shelved here',
+      '  * Kresge Reading Room (3rd floor): Individual study spaces, computers, printers, scanners, periodicals/reference stacks for in-library use, mezzanine above has study carrels',
+      '- Art Stacks (2nd floor): Oak tables, individual study spaces, shared/collaborative area for group work',
+      '',
+      'Other Libraries:',
+      '- Smaller libraries (Social Work, Theology & Ministry, ERC, etc.) provide quiet or collaborative study spaces depending on the library',
+      '',
+      '## Hours & Access:',
+      '- O\'Neill Library: 24/5 during Fall and Spring semesters (open 24 hours Sunday morning through Thursday night, closes Friday evening, reopens Sunday morning)',
+      '- Extended/24-7 access: During exam periods, O\'Neill and Bapst\'s Gargan Hall may offer extended/24-7-style access',
+      '- Hours vary by season, holiday, and specific library - check official BC Library Hours calendar for up-to-date info',
+      '- During holidays/breaks, libraries may have reduced hours or be closed',
+      '',
+      '## Borrowing & Services:',
+      '- Students, faculty, staff, and BC-affiliated users can borrow physical items (books, audiovisual materials) from O\'Neill, Bapst, Social Work, Law, ERC, etc.',
+      '- Borrower services at O\'Neill: library-account access (renewals, due dates, course reserves), office pickup/renewal, lockers, general circulation',
+      '- Access to 1 million+ e-books and 43,000+ electronic subscriptions',
+      '- Interlibrary loans available',
+      '- Remote access to library materials for alumni for a few months post-graduation',
+      '',
+      '## Printing, Tech & Facilities:',
+      'O\'Neill Library:',
+      '- Technology Walk-in Help Desk on main floor (Level 3): printers, scanners, fax machine, basic computer support for BC community',
+      '- Printing pricing (Print Bucks): black & white $0.03/page, color $0.50/page, duplex printing counts two sides accordingly',
+      '- Short-term lockers (24-hour) and long-term lockers (academic-year) available at O\'Neill and Bapst (first-come, first-serve)',
+      '  * Short-term keys from Level 3 desk',
+      '  * Long-term assignments begin in late August',
+      '- Connors Family Learning Center (2nd floor): tutoring, writing and academic support',
+      '- Digital Studio (2nd floor): digital media work, creation, and analysis',
+      '- Reference assistance available both in person and online 24/7',
+      '',
+      '## Restricted/Special-Access Libraries:',
+      '- Law Library: Reserved for Law School students',
+      '- Burns Library: Generally for researchers using special collections; general studying may be restricted',
+      '',
+      '## Digital Resources:',
+      '- Digital Collections and Scholarship: Jesuit Online Bibliography, University Repository (theses and dissertations)',
+      '- Digital Scholarship Group: expertise in 3D modeling, data visualization, GIS/mapping, web development',
+      '- Research guides available',
+      '',
+      '## Common Questions & Answers:',
+      'Q: "Where can I study late at BC?"',
+      'A: O\'Neill Library offers 24/5 study during fall and spring semesters (open 24 hours Sunday morning through Thursday night). During exam periods, O\'Neill and Bapst\'s Gargan Hall may have extended 24/7-style hours.',
+      '',
+      'Q: "Does BC Library have quiet and group study spaces?"',
+      'A: Yes. O\'Neill has 1,400+ seats including quiet individual carrels on levels 4-5, reservable group-study rooms on 5th floor, and collaborative spaces. Bapst offers 400 quiet study spaces including Gargan Hall and Kresge Reading Room, plus Art Stacks for group work.',
+      '',
+      'Q: "Can I print or scan on campus?"',
+      'A: Yes. O\'Neill Library has printers, scanners, and a tech-help desk on Level 3. Printing uses Print Bucks: $0.03/page (black-white) or $0.50/page (color).',
+      '',
+      'Q: "Can I borrow books or materials from BC Library?"',
+      'A: Yes. BC-affiliated students, faculty, and staff can borrow physical items (books, AV materials) from major libraries (O\'Neill, Bapst, etc.). Access library account for renewals, due dates, and course reserves.',
+      '',
+      'Q: "Are there lockers for storage?"',
+      'A: Yes. Both short-term (24-hour) and long-term (academic-year) lockers are available at O\'Neill and Bapst (first-come, first-serve). Short-term locker keys can be signed out at the Level 3 desk in O\'Neill.',
+      '',
+      'Q: "Where can I get academic help or digital media support?"',
+      'A: O\'Neill Library houses the Connors Family Learning Center (2nd floor) for writing/tutoring and the Digital Studio (2nd floor) for digital-media work.',
+      '',
+      'Q: "Are there libraries restricted to certain students?"',
+      'A: Yes. The Law Library is for Law School members only. Special-collections libraries like Burns are for researchers; general studying may be limited in those.',
+      '',
+      'Q: "What are the library hours?"',
+      'A: O\'Neill is 24/5 during fall and spring semesters. Hours vary by library, time of week, and academic calendar. Check the official BC Library Hours page for up-to-date information.',
       '',
       'BOOK RECOMMENDATION INSTRUCTIONS:',
-      'When recommending books, analyze the user\'s request for:',
-      '- Genre preferences (Fiction, Fantasy, Romance, Dystopian, etc.)',
-      '- Rating preferences (highly rated, top rated, etc.)',
-      '- Themes or topics mentioned (love, adventure, dystopia, society, etc.)',
+      'When recommending books, analyze the user\'s request AND their reading history (if available):',
+      '- Genre preferences (from request OR user\'s favorite genres from their library)',
+      '- Rating preferences (from request OR user\'s typical ratings from their rated books)',
+      '- Themes or topics mentioned (from request OR themes extracted from user\'s reviews)',
       '- Book specifications (length, publisher, author style, etc.)',
       '- Review content (what reviewers liked about the book)',
+      '- User\'s favorite authors (prioritize books by authors they\'ve favorited or rated highly)',
+      '- Similarity to user\'s favorites, saved, or highly-rated books',
       '',
-      'Match books by:',
-      '1. Genre match (exact or similar)',
-      '2. Rating (prefer higher ratings)',
-      '3. Review content (keywords in reviews)',
-      '4. Description keywords (themes, topics)',
-      '5. Specifications (pages, publisher, etc.)',
+      'Match books by priority (if user preferences are available, use them first):',
+      '1. User\'s favorite genres (if available) OR genre match from request',
+      '2. Books by user\'s favorite authors (if available)',
+      '3. Similar themes to user\'s reviews (if available) OR themes from request',
+      '4. Rating similar to user\'s average rating (if available) OR high ratings',
+      '5. Similarity to user\'s favorites/saved/rated books',
+      '6. Review content (keywords in reviews)',
+      '7. Description keywords (themes, topics)',
+      '8. Specifications (pages, publisher, etc.)',
       '',
       'When recommending, provide SHORT, CLEAN responses:',
       '- Keep the main reply brief (1-2 sentences max)',
@@ -133,6 +322,8 @@ function AIAssistant() {
       '- Resources: Access BC library resources and services',
       '- My Library: View saved books, favorites, ratings, and reviews (requires sign-in with @bc.edu email)',
       '',
+      userPreferencesSection,
+      '',
       'Available Books with Details:',
       bookDetails || 'No books available',
       '',
@@ -141,13 +332,18 @@ function AIAssistant() {
       '',
       'Examples:',
       '- User: "take me to book reviews" → {"reply":"Taking you to Book Reviews.","action":{"type":"navigate","target":"/book-reviews"}}',
+      '- User: "take me to book a study room" → {"reply":"Taking you to Resources where you can book a study room.","action":{"type":"navigate","target":"/resources"}}',
+      '- User: "book a study room" → {"reply":"Taking you to Resources where you can book a study room.","action":{"type":"navigate","target":"/resources"}}',
+      '- User: "reserve a study room" → {"reply":"Taking you to Resources where you can reserve a study room.","action":{"type":"navigate","target":"/resources"}}',
       '- User: "what is advanced search" → {"reply":"Advanced Search is a page where you can search books by title, author, genre, and more. It has filters to help you find exactly what you\'re looking for."}',
       '- User: "take me to The Great Gatsby book" → {"reply":"Taking you to The Great Gatsby.","action":{"type":"navigate","target":"/book/isbn/978-0-7432-7356-5"},"bookIsbn":"978-0-7432-7356-5"}',
       '- User: "find me a fantasy book" → {"reply":"Here are some fantasy recommendations:","recommendations":[{"title":"The Lord of the Rings","isbn":"978-0-544-00035-4","reason":"Epic fantasy (4.9/5)"},{"title":"The Hobbit","isbn":"978-0-547-92822-7","reason":"Classic adventure (4.8/5)"}]}',
       '- User: "I want a highly rated book about society" → {"reply":"Here are highly-rated books about society:","recommendations":[{"title":"To Kill a Mockingbird","isbn":"978-0-06-112008-4","reason":"Justice themes (4.8/5)"},{"title":"1984","isbn":"978-0-452-28423-4","reason":"Social commentary (4.7/5)"}]}',
-      '- User: "what is the weather" → {"reply":"Sorry, I couldn\'t understand that. I can only help with questions about this website, its pages, and books available here."}'
+      '- User: "where can I study late at BC?" → {"reply":"O\'Neill Library offers 24/5 study during fall and spring semesters (open 24 hours Sunday morning through Thursday night). During exam periods, O\'Neill and Bapst\'s Gargan Hall may have extended 24/7-style hours."}',
+      '- User: "can I print at the library?" → {"reply":"Yes! O\'Neill Library has printers, scanners, and a tech-help desk on Level 3. Printing uses Print Bucks: $0.03/page for black & white or $0.50/page for color."}',
+      '- User: "what is the weather" → {"reply":"Sorry, I couldn\'t understand that. I can help with questions about this website, BC libraries, and books available here."}'
     ].join('\n')
-  }, [enrichedBooks])
+  }, [enrichedBooks, userPreferences])
 
   const toggleChat = () => {
     setIsOpen(prev => !prev)
@@ -242,62 +438,92 @@ function AIAssistant() {
     try {
       // Pre-process user prompt to detect patterns
       const lowerPrompt = userPrompt.toLowerCase()
+      const isStudyRoomRequest = /book.*study room|reserve.*study room|study room.*book|study room.*reserve/i.test(userPrompt)
       const isNavigationRequest = /take me to|go to|navigate to|show me|open/i.test(userPrompt)
       const isQuestionRequest = /what is|tell me about|explain|what's/i.test(userPrompt)
       const isRecommendationRequest = /find.*book|recommend.*book|suggest.*book|want.*book|looking for.*book|help.*find|book.*about/i.test(userPrompt)
       
+      // Known page navigation phrases - skip book detection for these
+      const knownPagePhrases = [
+        'my library', 'my-library', 'my library page',
+        'book a study room', 'book study room', 'reserve study room', 'study room',
+        'home', 'advanced search', 'book reviews', 'resources', 'sign in', 'sign-in',
+        'about', 'faq', 'contact', 'privacy'
+      ]
+      const isKnownPageNavigation = knownPagePhrases.some(phrase => lowerPrompt.includes(phrase))
+      
       // Try to extract book title - check if prompt contains a book title
+      // BUT skip if it's a study room request or known page navigation
       let bookIsbn = null
       let detectedBook = null
       
-      // First, try to find if the prompt mentions a book title (even without the word "book")
-      // Check all books to see if any title is mentioned in the prompt
-      for (const book of books) {
-        const bookTitleLower = book.title.toLowerCase()
-        // Check if book title appears in the prompt (exact match or contains)
-        if (lowerPrompt.includes(bookTitleLower)) {
-          detectedBook = book
-          bookIsbn = book.isbn
-          break
-        }
-        // Check if any significant word from book title appears in prompt
-        const bookWords = bookTitleLower.split(/\s+/).filter(w => w.length > 2)
-        const promptWords = lowerPrompt.split(/\s+/)
-        // Check if all significant words from a short title are in the prompt
-        if (bookWords.length <= 3 && bookWords.every(word => promptWords.some(pw => pw.includes(word) || word.includes(pw)))) {
-          detectedBook = book
-          bookIsbn = book.isbn
-          break
-        }
-        // Special case: if book title is just a number (like "1984"), check if that number is in prompt
-        if (/^\d+$/.test(bookTitleLower) && lowerPrompt.includes(bookTitleLower)) {
-          detectedBook = book
-          bookIsbn = book.isbn
-          break
-        }
-      }
-      
-      // If no book found yet, try explicit book request patterns
-      if (!detectedBook && /book/i.test(userPrompt)) {
-        // Extract potential book title (everything after "take me to" or "show me" and before "book")
-        const bookMatch = userPrompt.match(/(?:take me to|show me|find|go to|open)\s+(.+?)\s+book/i)
-        if (bookMatch && bookMatch[1]) {
-          const potentialTitle = bookMatch[1].trim()
-          const foundBook = findBookByTitle(potentialTitle)
-          if (foundBook) {
-            detectedBook = foundBook
-            bookIsbn = foundBook.isbn
+      // Only try to detect books if it's not a study room request or known page navigation
+      if (!isStudyRoomRequest && !isKnownPageNavigation) {
+        // First, try to find if the prompt mentions a book title (even without the word "book")
+        // Check all books to see if any title is mentioned in the prompt
+        for (const book of books) {
+          const bookTitleLower = book.title.toLowerCase()
+          // Check if book title appears in the prompt (exact match or contains)
+          // But make sure it's not just a partial word match (e.g., "library" matching "My Library")
+          if (lowerPrompt.includes(bookTitleLower)) {
+            // Additional check: make sure it's not matching a common word that happens to be in a book title
+            // Skip if the match is too short or if it's part of a known navigation phrase
+            const titleWords = bookTitleLower.split(/\s+/)
+            const isLikelyBookMatch = titleWords.length > 1 || bookTitleLower.length > 5
+            if (isLikelyBookMatch) {
+              detectedBook = book
+              bookIsbn = book.isbn
+              break
+            }
           }
-        } else {
-          // Try to find book title in the prompt (title before "book")
-          const words = userPrompt.split(/\s+/)
-          const bookIndex = words.findIndex(w => w.toLowerCase() === 'book')
-          if (bookIndex > 0) {
-            const potentialTitle = words.slice(0, bookIndex).join(' ').replace(/^(take me to|show me|find|go to|open)\s+/i, '').trim()
-            const foundBook = findBookByTitle(potentialTitle)
-            if (foundBook) {
-              detectedBook = foundBook
-              bookIsbn = foundBook.isbn
+          // Check if any significant word from book title appears in prompt
+          const bookWords = bookTitleLower.split(/\s+/).filter(w => w.length > 2)
+          const promptWords = lowerPrompt.split(/\s+/)
+          // Only match if it's a multi-word title and all words match (more strict)
+          if (bookWords.length >= 2 && bookWords.length <= 3 && bookWords.every(word => promptWords.some(pw => pw.includes(word) || word.includes(pw)))) {
+            detectedBook = book
+            bookIsbn = book.isbn
+            break
+          }
+          // Special case: if book title is just a number (like "1984"), check if that number is in prompt
+          if (/^\d+$/.test(bookTitleLower) && lowerPrompt.includes(bookTitleLower)) {
+            detectedBook = book
+            bookIsbn = book.isbn
+            break
+          }
+        }
+        
+        // If no book found yet, try explicit book request patterns
+        if (!detectedBook && /book/i.test(userPrompt)) {
+          // Extract potential book title (everything after "take me to" or "show me" and before "book")
+          // But skip if it's "book a study room" or similar
+          if (!isStudyRoomRequest) {
+            const bookMatch = userPrompt.match(/(?:take me to|show me|find|go to|open)\s+(.+?)\s+book/i)
+            if (bookMatch && bookMatch[1]) {
+              const potentialTitle = bookMatch[1].trim()
+              // Skip if the potential title is a known page phrase
+              if (!knownPagePhrases.some(phrase => potentialTitle.toLowerCase().includes(phrase))) {
+                const foundBook = findBookByTitle(potentialTitle)
+                if (foundBook) {
+                  detectedBook = foundBook
+                  bookIsbn = foundBook.isbn
+                }
+              }
+            } else {
+              // Try to find book title in the prompt (title before "book")
+              const words = userPrompt.split(/\s+/)
+              const bookIndex = words.findIndex(w => w.toLowerCase() === 'book')
+              if (bookIndex > 0) {
+                const potentialTitle = words.slice(0, bookIndex).join(' ').replace(/^(take me to|show me|find|go to|open)\s+/i, '').trim()
+                // Skip if the potential title is a known page phrase
+                if (!knownPagePhrases.some(phrase => potentialTitle.toLowerCase().includes(phrase))) {
+                  const foundBook = findBookByTitle(potentialTitle)
+                  if (foundBook) {
+                    detectedBook = foundBook
+                    bookIsbn = foundBook.isbn
+                  }
+                }
+              }
             }
           }
         }
@@ -393,8 +619,40 @@ function AIAssistant() {
         
       }
       
-      // Navigate based on request type - prioritize book navigation
-      if (finalBookIsbn && (isBookNavigation || (isNavigationRequest && !isQuestionRequest))) {
+      // Navigate based on request type - prioritize study room, known pages, then book navigation
+      if (isStudyRoomRequest) {
+        // Study room booking - navigate to resources page
+        setTimeout(() => {
+          handleNavigation('/resources')
+        }, 100)
+      } else if (isKnownPageNavigation && isNavigationRequest) {
+        // Known page navigation - handle directly
+        if (lowerPrompt.includes('my library') || lowerPrompt.includes('my-library')) {
+          setTimeout(() => {
+            handleNavigation('/my-library')
+          }, 100)
+        } else if (lowerPrompt.includes('home')) {
+          setTimeout(() => {
+            handleNavigation('/')
+          }, 100)
+        } else if (lowerPrompt.includes('advanced search')) {
+          setTimeout(() => {
+            handleNavigation('/advanced-search')
+          }, 100)
+        } else if (lowerPrompt.includes('book reviews')) {
+          setTimeout(() => {
+            handleNavigation('/book-reviews')
+          }, 100)
+        } else if (lowerPrompt.includes('resources')) {
+          setTimeout(() => {
+            handleNavigation('/resources')
+          }, 100)
+        } else if (lowerPrompt.includes('sign in') || lowerPrompt.includes('sign-in')) {
+          setTimeout(() => {
+            handleNavigation('/sign-in')
+          }, 100)
+        }
+      } else if (finalBookIsbn && (isBookNavigation || (isNavigationRequest && !isQuestionRequest))) {
         // Book navigation - always navigate if book was detected and it's a navigation request
         // Use setTimeout to ensure message is displayed before navigation
         setTimeout(() => {

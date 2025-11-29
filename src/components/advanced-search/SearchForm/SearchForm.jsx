@@ -22,14 +22,6 @@ const SearchForm = ({ onSearch }) => {
 
   return (
     <form className={styles.searchForm} onSubmit={handleSubmit}>
-      <div className={styles.searchDropdown}>
-        <button 
-          type="button" 
-          className={styles.dropdownButton}
-        >
-          ALL <span className={styles.arrow}>▼</span>
-        </button>
-      </div>
       <input 
         type="search"
         id="search-input"

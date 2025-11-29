@@ -32,9 +32,6 @@ const TrendingSection = ({ books = [] }) => {
               <span className={styles.metaValue}>{highestRated.rating.toFixed(1)}</span>
               <p className={styles.metaLabel}>Top rating ({highestRated.title})</p>
             </div>
-            <button className={styles.viewAllButton} type="button">
-              View full collection
-            </button>
           </div>
         </div>
 
