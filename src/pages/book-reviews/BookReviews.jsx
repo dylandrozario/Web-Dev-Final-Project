@@ -287,7 +287,7 @@ function BookReviews() {
                 if (isAuthenticated) {
                   // User is logged in - could navigate to recommendations page or show recommendations
                   // For now, navigate to My Library which shows their saved/rated books
-                  navigate('/my-library')
+                  navigate('/recommendations')
                 } else {
                   // User not logged in - navigate to sign in
                   navigate('/sign-in')

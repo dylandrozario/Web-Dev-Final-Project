@@ -17,6 +17,8 @@ import { About, FAQ, Contact, Privacy } from './pages/info'
 import { useBooks } from './context/BooksContext'
 import { isbnMatches } from './utils/bookUtils'
 import './App.css'
+import RecommendationsPage from './pages/recommendations/RecommendationsPage';
+
 
 // Component to check if book exists and render appropriate component
 function BookDetailsWithFallback() {
@@ -58,6 +60,7 @@ function App() {
         <Route path="/sign-in" element={<SignIn />} />
         <Route path="/my-library" element={<MyLibrary />} />
         <Route path="/advanced-search" element={<AdvancedSearch />} />
+        <Route path="/recommendations" element={<RecommendationsPage />} />
         <Route path="/book/:id" element={<BookDetails />} />
         <Route path="/book-details" element={<BookDetails />} />
         <Route path="/book/isbn/:isbn" element={<BookDetailsWithFallback />} />
