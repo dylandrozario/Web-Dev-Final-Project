@@ -102,32 +102,9 @@ export const fetchBooksFromOpenLibrary = async (limit = 50) => {
       .map(mapOpenLibraryBook)
       .slice(0, limit);
     
-
-    Promise.all(
-      books.map(async (book) => {
-        if (book.olKey && !book.description) {
-          try {
-            // fetch description from work api
-            const workUrl = `https://openlibrary.org${book.olKey}.json`;
-            const workResponse = await fetch(workUrl);
-            if (workResponse.ok) {
-              const workData = await workResponse.json();
-              const description = 
-                workData.description?.value || 
-                workData.description || 
-                (Array.isArray(workData.first_sentence) ? workData.first_sentence.join(' ') : workData.first_sentence) ||
-                null;
-              // update the book object if description found
-              if (description) {
-                book.description = description;
-              }
-            }
-          } catch (err) {
-          }
-        }
-      })
-    ).catch(() => {
-    });
+    // Removed unawaited Promise.all that was making 50+ unnecessary API calls
+    // Descriptions are already available from first_sentence in the search results
+    // If more detailed descriptions are needed, they can be fetched on-demand when viewing book details
     
     return books;
   } catch (error) {
