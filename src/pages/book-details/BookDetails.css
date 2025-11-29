@@ -361,7 +361,7 @@
 /* Responsive Design */
 @media (max-width: 1200px) {
   .book-details-grid {
-    grid-template-columns: 1fr 1.5fr 1fr;
+    grid-template-columns: 1fr 1.5fr;
     gap: 2rem;
   }
 }

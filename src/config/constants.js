@@ -15,7 +15,7 @@ export const APP_CONFIG = {
   MIN_RATING: 0,
   
   // Browse options
-  BROWSE_OPTIONS: ['Decade', 'Year', 'Month', 'Week'],
+  BROWSE_OPTIONS: ['Date', 'Reviews', 'Genres', 'Profile'],
   
   // Pagination
   ITEMS_PER_PAGE: 25,

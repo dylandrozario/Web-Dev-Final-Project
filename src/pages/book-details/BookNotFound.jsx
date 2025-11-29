@@ -1,7 +1,7 @@
 import { useParams } from 'react-router-dom'
 import { useMemo } from 'react'
 import APP_CONFIG from '../../config/constants'
-import { generateLibraryAvailability, formatDate, calculateReadTime, generateBookDescription } from '../../utils/bookUtils'
+import { formatDate, calculateReadTime, generateBookDescription } from '../../utils/bookUtils'
 import './BookDetails.css'
 
 export default function BookNotFound() {
@@ -61,10 +61,6 @@ export default function BookNotFound() {
     }
   }, [isbn])
 
-  // Generate library availability (mock data)
-  const libraryAvailability = useMemo(() => {
-    return generateLibraryAvailability(mockBook.isbn)
-  }, [mockBook.isbn])
 
   const formattedDate = formatDate(mockBook.releaseDate)
   const readTimeMinutes = calculateReadTime(APP_CONFIG.DEFAULT_ESTIMATED_PAGES)
@@ -165,36 +161,6 @@ export default function BookNotFound() {
             </div>
           </div>
 
-          {/* Right: Availability Options */}
-          <div className="purchase-section">
-            <div className="purchase-box">
-              <div className="availability-header">
-                <h3 className="availability-title">Availability</h3>
-                <div className={`availability-badge ${libraryAvailability.some(lib => lib.available) ? 'in-stock' : 'out-of-stock'}`}>
-                  {libraryAvailability.some(lib => lib.available) ? 'Available' : 'Not Available'}
-                </div>
-              </div>
-
-              <div className="library-list">
-                {libraryAvailability.map((lib) => (
-                  <div key={lib.library} className="library-item">
-                    <div className="library-name-row">
-                      <span className="library-name">{lib.library}</span>
-                      <span className={`library-status ${lib.available ? 'available' : 'unavailable'}`}>
-                        {lib.available ? `${lib.quantity} available` : 'Not available'}
-                      </span>
-                    </div>
-                    {lib.available && (
-                      <button className="btn-checkout">Checkout</button>
-                    )}
-                    {!lib.available && (
-                      <button className="btn-request">Request</button>
-                    )}
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
         </div>
 
         {/* Comments Section */}

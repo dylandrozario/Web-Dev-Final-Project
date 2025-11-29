@@ -6,7 +6,9 @@
     "title": "Digital Archives & Special Collections",
     "description": "Access historical documents, rare manuscripts, and archival materials online",
     "likes": 124,
-    "comments": 23
+    "comments": 23,
+    "externalUrl": null,
+    "category": "collection"
   },
   {
     "id": 2,
@@ -15,7 +17,9 @@
     "title": "Research Databases",
     "description": "Comprehensive academic databases for scholarly research and articles",
     "likes": 89,
-    "comments": 15
+    "comments": 15,
+    "externalUrl": "https://www.jstor.org/",
+    "category": "database"
   },
   {
     "id": 3,
@@ -24,7 +28,9 @@
     "title": "E-Book Collection",
     "description": "Thousands of digital books available for instant download and reading",
     "likes": 156,
-    "comments": 31
+    "comments": 31,
+    "externalUrl": null,
+    "category": "collection"
   },
   {
     "id": 4,
@@ -33,7 +39,9 @@
     "title": "Study Spaces & Equipment",
     "description": "Reserve study rooms, access computers, and borrow technology equipment",
     "likes": 67,
-    "comments": 12
+    "comments": 12,
+    "externalUrl": "https://libcal.bc.edu/reserve/oneill",
+    "category": "service"
   },
   {
     "id": 5,
@@ -42,7 +50,9 @@
     "title": "Research Guides & Tutorials",
     "description": "Expert help and step-by-step guides for your academic research projects",
     "likes": 203,
-    "comments": 45
+    "comments": 45,
+    "externalUrl": null,
+    "category": "service"
   },
   {
     "id": 6,
@@ -51,7 +61,9 @@
     "title": "Interlibrary Loan Services",
     "description": "Request books and materials from other libraries across the network",
     "likes": 178,
-    "comments": 28
+    "comments": 28,
+    "externalUrl": null,
+    "category": "service"
   }
 ]
 

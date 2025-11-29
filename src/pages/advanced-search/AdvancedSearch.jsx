@@ -5,6 +5,8 @@ import TrendingSection from '../../components/advanced-search/TrendingSection/Tr
 import LibrarySection from '../../components/advanced-search/LibrarySection/LibrarySection'
 import SearchForm from '../../components/advanced-search/SearchForm/SearchForm'
 import { useBooks } from '../../context/BooksContext'
+import { naturalLanguageSearch, shouldUseNLSearch, initializeSearchIndex } from '../../utils/nlSearch'
+import { generateBookDescription } from '../../utils/bookUtils'
 import styles from './AdvancedSearch.module.css'
 
 function AdvancedSearch() {
@@ -40,7 +42,7 @@ function AdvancedSearch() {
   // Map books data to include availability and normalize genre
   // Using a seed-based approach for consistent availability values
   const allBooks = useMemo(() => {
-    return booksData.map((book, index) => {
+    const mapped = booksData.map((book, index) => {
       // Generate consistent availability based on index (not random)
       const seed = index * 7 + 3
       const availability = (seed % 5) + 1
@@ -55,9 +57,12 @@ function AdvancedSearch() {
         rating: book.rating,
         releaseDate: book.releaseDate,
         image: book.image,
-        description: book.description || '' // Include description for fuzzy search
+        description: book.description || '', // Include description for fuzzy search
+        publisher: book.publisher || null
       }
     })
+    
+    return mapped
   }, [booksData])
 
   // fuzzy search on book summaries/descriptions

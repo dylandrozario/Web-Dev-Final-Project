@@ -23,18 +23,6 @@ function BookReviews() {
   const [selectedBookFormat, setSelectedBookFormat] = useState(null)
   const [selectedTopOption, setSelectedTopOption] = useState('Top')
   const [selectedTimeRange, setSelectedTimeRange] = useState('All-time')
-  const [showAdvancedOptions, setShowAdvancedOptions] = useState(false)
-  const [userRatingsFilters, setUserRatingsFilters] = useState({
-    following: false,
-    followers: false,
-    myself: false,
-    others: false
-  })
-  const [excludeFilters, setExcludeFilters] = useState({
-    rated: false,
-    cataloged: false,
-    wishlisted: false
-  })
   const itemsPerPage = APP_CONFIG.ITEMS_PER_PAGE
 
   // Generate mock review data for books
@@ -185,12 +173,11 @@ function BookReviews() {
                 <polyline points="9 22 9 12 15 12 15 22"/>
               </svg>
             </button>
-            <button className="header-icon-btn" title="Folder">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
-              </svg>
-            </button>
-            <button className="header-icon-btn" title="Bookmark">
+            <button 
+              className="header-icon-btn" 
+              title="My Library"
+              onClick={() => navigate('/my-library')}
+            >
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/>
               </svg>
@@ -267,18 +254,6 @@ function BookReviews() {
                     <rect x="3" y="14" width="7" height="7"/>
                   </svg>
                 </button>
-                <button className="view-btn" title="Weekly">
-                  Weekly: {new Date().toLocaleDateString('en-US', { day: 'numeric', month: 'short' })}
-                </button>
-                <button className="view-btn" title="Daily">
-                  Daily: {new Date().toLocaleDateString('en-US', { day: 'numeric', month: 'short' })}
-                </button>
-                <button className="view-btn settings-btn" title="Settings">
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <circle cx="12" cy="12" r="3"/>
-                    <path d="M12 1v6m0 6v6M5.64 5.64l4.24 4.24m4.24 4.24l4.24 4.24M1 12h6m6 0h6M5.64 18.36l4.24-4.24m4.24-4.24l4.24-4.24"/>
-                  </svg>
-                </button>
               </div>
               <div className="pagination">
                 <button 
@@ -326,7 +301,7 @@ function BookReviews() {
             </div>
 
             {/* Book Chart */}
-            <div className="book-chart">
+            <div className={`book-chart ${viewMode === 'grid' ? 'grid-view' : 'list-view'}`}>
               {paginatedBooks.map((book, index) => {
                 const rank = (currentPage - 1) * itemsPerPage + index + 1
                 return (
@@ -461,93 +436,6 @@ function BookReviews() {
                 value={searchFilter}
                 onChange={handleSearchChange}
               />
-              <a 
-                href="#" 
-                className="advanced-options-link" 
-                onClick={(e) => {
-                  e.preventDefault()
-                  setShowAdvancedOptions(!showAdvancedOptions)
-                }}
-              >
-                {showAdvancedOptions ? 'Hide advanced options' : 'Show advanced options'}
-              </a>
-
-              {/* Advanced Options Section */}
-              {showAdvancedOptions && (
-                <div className="advanced-options-section">
-                  {/* Only include ratings from users */}
-                  <div className="advanced-option-group">
-                    <h4 className="advanced-option-title">Only include ratings from users...</h4>
-                    <div className="advanced-checkbox-group">
-                      <label className="advanced-checkbox">
-                        <input
-                          type="checkbox"
-                          checked={userRatingsFilters.following}
-                          onChange={(e) => setUserRatingsFilters(prev => ({ ...prev, following: e.target.checked }))}
-                        />
-                        <span>I'm following</span>
-                      </label>
-                      <label className="advanced-checkbox">
-                        <input
-                          type="checkbox"
-                          checked={userRatingsFilters.followers}
-                          onChange={(e) => setUserRatingsFilters(prev => ({ ...prev, followers: e.target.checked }))}
-                        />
-                        <span>My followers</span>
-                      </label>
-                      <label className="advanced-checkbox">
-                        <input
-                          type="checkbox"
-                          checked={userRatingsFilters.myself}
-                          onChange={(e) => setUserRatingsFilters(prev => ({ ...prev, myself: e.target.checked }))}
-                        />
-                        <span>Myself</span>
-                      </label>
-                      <label className="advanced-checkbox">
-                        <input
-                          type="checkbox"
-                          checked={userRatingsFilters.others}
-                          onChange={(e) => setUserRatingsFilters(prev => ({ ...prev, others: e.target.checked }))}
-                        />
-                        <span>Others</span>
-                      </label>
-                    </div>
-                  </div>
-
-                  {/* Exclude releases that I have */}
-                  <div className="advanced-option-group">
-                    <h4 className="advanced-option-title">Exclude releases that I have:</h4>
-                    <div className="advanced-checkbox-group">
-                      <label className="advanced-checkbox">
-                        <input
-                          type="checkbox"
-                          checked={excludeFilters.rated}
-                          onChange={(e) => setExcludeFilters(prev => ({ ...prev, rated: e.target.checked }))}
-                        />
-                        <span>Rated</span>
-                      </label>
-                      <label className="advanced-checkbox">
-                        <input
-                          type="checkbox"
-                          checked={excludeFilters.cataloged}
-                          onChange={(e) => setExcludeFilters(prev => ({ ...prev, cataloged: e.target.checked }))}
-                        />
-                        <span>Cataloged</span>
-                      </label>
-                      <label className="advanced-checkbox">
-                        <input
-                          type="checkbox"
-                          checked={excludeFilters.wishlisted}
-                          onChange={(e) => setExcludeFilters(prev => ({ ...prev, wishlisted: e.target.checked }))}
-                        />
-                        <span>Wishlisted</span>
-                      </label>
-                    </div>
-                  </div>
-
-                </div>
-              )}
-
               <div className="update-chart-container">
                 <button className="update-chart-btn">Update chart</button>
               </div>

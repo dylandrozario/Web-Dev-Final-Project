@@ -9,7 +9,8 @@
     "image": "/images/books/gatsby.svg",
     "pages": 180,
     "publisher": "Charles Scribner's Sons",
-    "language": "English"
+    "language": "English",
+    "description": "Set in the summer of 1922, The Great Gatsby follows Nick Carraway as he moves to Long Island and becomes entangled in the lavish world of his mysterious neighbor, Jay Gatsby. Through Gatsby's extravagant parties and obsessive pursuit of Daisy Buchanan, Fitzgerald masterfully explores themes of the American Dream, social class, wealth, and the moral decay hidden beneath the glittering surface of Jazz Age America. This iconic novel examines the illusion of the American Dream and the tragic consequences of unattainable desires, making it one of the greatest American novels of the 20th century."
   },
   {
     "title": "To Kill a Mockingbird",
@@ -21,7 +22,8 @@
     "image": "/images/books/mockingbird.svg",
     "pages": 376,
     "publisher": "J.B. Lippincott & Co.",
-    "language": "English"
+    "language": "English",
+    "description": "Told through the eyes of Scout Finch, a young girl growing up in the racially divided town of Maycomb, Alabama during the 1930s, this Pulitzer Prize-winning novel follows her father Atticus Finch as he defends a Black man falsely accused of rape. Through Scout's innocent perspective, Harper Lee explores profound themes of racial injustice, moral growth, childhood innocence, and the loss of that innocence. The novel addresses serious issues of prejudice, courage, and compassion, teaching readers about empathy and standing up for what is right even when it's difficult. A powerful coming-of-age story that remains relevant today."
   },
   {
     "title": "1984",
@@ -33,7 +35,8 @@
     "image": "/images/books/1984.svg",
     "pages": 328,
     "publisher": "Secker & Warburg",
-    "language": "English"
+    "language": "English",
+    "description": "In a totalitarian future where Big Brother watches everything, Winston Smith works for the Party rewriting history to match their ever-changing narrative. As he secretly rebels against the oppressive regime and falls in love with Julia, Orwell creates a chilling vision of a world where independent thought is a crime, truth is manipulated, and freedom is systematically destroyed. This dystopian masterpiece explores themes of surveillance, propaganda, thought control, and the manipulation of language and history. A powerful warning about the dangers of totalitarianism and the importance of preserving truth and individual freedom."
   },
   {
     "title": "The Lord of the Rings",
@@ -45,7 +48,8 @@
     "image": "/images/books/LOTR.jpg",
     "pages": 1178,
     "publisher": "George Allen & Unwin",
-    "language": "English"
+    "language": "English",
+    "description": "This epic fantasy trilogy follows Frodo Baggins and the Fellowship of the Ring as they embark on a perilous quest to destroy the One Ring and defeat the Dark Lord Sauron. Set in the richly imagined world of Middle-earth, Tolkien weaves together themes of friendship, courage, sacrifice, good versus evil, and the corrupting influence of power. With its detailed world-building, complex characters, and profound exploration of heroism and morality, The Lord of the Rings has become one of the most beloved and influential fantasy works ever written. A timeless tale of adventure, loyalty, and the enduring power of hope against overwhelming darkness."
   },
   {
     "title": "Pride and Prejudice",
@@ -57,7 +61,8 @@
     "image": "/images/books/pride.svg",
     "pages": 432,
     "publisher": "T. Egerton, Whitehall",
-    "language": "English"
+    "language": "English",
+    "description": "When the wealthy and aloof Mr. Darcy moves to the neighborhood, Elizabeth Bennet forms an immediate dislike for him based on his pride and her own prejudice. Through witty dialogue and social commentary, Austen masterfully explores themes of love, marriage, social class, reputation, and the importance of looking beyond first impressions. Set in Regency England, this beloved romance follows Elizabeth and Darcy as they navigate misunderstandings, family expectations, and their own personal growth. A timeless story of love overcoming pride and prejudice, featuring one of literature's most memorable romantic couples and sharp social satire."
   },
   {
     "title": "The Hobbit",
@@ -69,7 +74,8 @@
     "image": "/images/books/hobbit.jpg",
     "pages": 310,
     "publisher": "George Allen & Unwin",
-    "language": "English"
+    "language": "English",
+    "description": "Bilbo Baggins, a comfort-loving hobbit, is swept into an unexpected adventure when the wizard Gandalf and thirteen dwarves arrive at his door. Tasked with helping the dwarves reclaim their homeland from the dragon Smaug, Bilbo embarks on a journey across Middle-earth filled with trolls, goblins, elves, and the mysterious Gollum. Along the way, he discovers courage he never knew he had and finds a magical ring that will change the fate of Middle-earth. This charming prelude to The Lord of the Rings combines adventure, humor, and heart, exploring themes of courage, friendship, and the heroism found in ordinary people."
   },
   {
     "title": "The Fellowship of the Ring",
@@ -81,7 +87,8 @@
     "image": "/images/books/fellowship.jpg",
     "pages": 423,
     "publisher": "George Allen & Unwin",
-    "language": "English"
+    "language": "English",
+    "description": "The first volume of The Lord of the Rings trilogy begins when Frodo Baggins inherits the One Ring from his uncle Bilbo. With the Dark Lord Sauron seeking to reclaim his lost Ring, Frodo must leave the Shire and journey to Mount Doom to destroy it. Joined by the Fellowship—including Gandalf, Aragorn, Legolas, Gimli, Boromir, Merry, Pippin, and Sam—they face dangers from Ringwraiths, orcs, and the corrupting power of the Ring itself. This epic adventure explores themes of friendship, sacrifice, the burden of responsibility, and the beginning of a quest that will determine the fate of all Middle-earth."
   },
   {
     "title": "The Two Towers",
@@ -93,7 +100,8 @@
     "image": "/images/books/towers.jpg",
     "pages": 352,
     "publisher": "George Allen & Unwin",
-    "language": "English"
+    "language": "English",
+    "description": "The second volume of The Lord of the Rings follows two parallel storylines: Frodo and Sam continue their journey toward Mordor with the treacherous Gollum as their guide, while the remaining members of the Fellowship—Aragorn, Legolas, and Gimli—pursue the orcs who have captured Merry and Pippin. As war looms and the forces of darkness gather, the story explores themes of loyalty, perseverance, the corrupting influence of power, and the difficult choices heroes must make. The Two Towers builds tension as the quest becomes more dangerous and the fate of Middle-earth hangs in the balance."
   },
   {
     "title": "The Return of the King",
@@ -105,7 +113,8 @@
     "image": "/images/books/king.jpg",
     "pages": 416,
     "publisher": "George Allen & Unwin",
-    "language": "English"
+    "language": "English",
+    "description": "The epic conclusion of The Lord of the Rings trilogy reaches its climax as Frodo and Sam make their final push to Mount Doom while Aragorn leads the armies of the West in a desperate battle against Sauron's forces at the gates of Mordor. This final volume brings together all the storylines in a dramatic conclusion filled with sacrifice, heroism, and the ultimate triumph of good over evil. Themes of hope, redemption, the cost of victory, and the end of an age are explored as Middle-earth is forever changed. A powerful and emotional conclusion to one of the greatest fantasy epics ever written."
   }
 ]
 
