@@ -35,6 +35,30 @@ const sanitizeJSON = (text = '') => {
   return trimmed
 }
 
+// Default generation config for Gemini models
+const DEFAULT_GENERATION_CONFIG = {
+  temperature: 0.4,
+  topP: 0.8,
+  topK: 32
+}
+
+// Helper to create model config
+const createModelConfig = (modelName, useGrounding = false) => {
+  const config = {
+    model: modelName,
+    generationConfig: DEFAULT_GENERATION_CONFIG
+  }
+  if (useGrounding) {
+    config.tools = [{ googleSearchRetrieval: {} }]
+  }
+  return config
+}
+
+// Helper to navigate with delay (ensures UI updates before navigation)
+const navigateWithDelay = (navigate, target, delay = 100) => {
+  setTimeout(() => navigate(target), delay)
+}
+
 const initialMessage = {
   role: 'bot',
   text: "Hey there! I'm the AI Library Assistant. Ask me about books, reviews, BC library resources, or where to click next."
@@ -358,6 +382,39 @@ function AIAssistant() {
     navigate(target)
   }, [navigate])
 
+  // Helper function to check if a book title matches a search term
+  const bookTitleMatches = useCallback((bookTitle, searchTerm) => {
+    const bookTitleLower = bookTitle.toLowerCase()
+    const searchLower = searchTerm.toLowerCase()
+    
+    // Exact match
+    if (bookTitleLower === searchLower) return true
+    
+    // Contains match
+    if (bookTitleLower.includes(searchLower) || searchLower.includes(bookTitleLower)) {
+      // Additional check: make sure it's not matching a common word
+      const titleWords = bookTitleLower.split(/\s+/)
+      return titleWords.length > 1 || bookTitleLower.length > 5
+    }
+    
+    // Word-based matching for multi-word titles
+    const searchWords = searchLower.split(/\s+/).filter(w => w.length > 2)
+    const bookWords = bookTitleLower.split(/\s+/).filter(w => w.length > 2)
+    
+    if (searchWords.length >= 2 && searchWords.length <= 3) {
+      return searchWords.every(word => 
+        bookWords.some(bw => bw.includes(word) || word.includes(bw))
+      )
+    }
+    
+    // Special case: numeric titles (like "1984")
+    if (/^\d+$/.test(searchLower)) {
+      return bookTitleLower.includes(searchLower)
+    }
+    
+    return false
+  }, [])
+
   const findBookByTitle = useCallback((title) => {
     if (!title || !books || books.length === 0) return null
     
@@ -367,33 +424,23 @@ function AIAssistant() {
     let book = books.find(b => b.title.toLowerCase() === lowerTitle)
     if (book) return book
     
-    // Try partial match (title contains search or search contains title)
-    book = books.find(b => {
-      const bookTitleLower = b.title.toLowerCase()
-      return bookTitleLower.includes(lowerTitle) || lowerTitle.includes(bookTitleLower)
-    })
+    // Use helper function for matching
+    book = books.find(b => bookTitleMatches(b.title, lowerTitle))
     if (book) return book
     
-    // Try matching by words (for multi-word titles)
+    // Additional word-based matching for multi-word titles
     const titleWords = lowerTitle.split(/\s+/).filter(w => w.length > 1)
     if (titleWords.length > 0) {
       book = books.find(b => {
         const bookTitleLower = b.title.toLowerCase()
-        // Check if all significant words match
         const matchingWords = titleWords.filter(word => bookTitleLower.includes(word))
-        return matchingWords.length >= Math.min(titleWords.length, 2) // At least 2 words or all if less
+        return matchingWords.length >= Math.min(titleWords.length, 2)
       })
       if (book) return book
     }
     
-    // Special case: if title is just a number (like "1984"), try to match it
-    if (/^\d+$/.test(lowerTitle)) {
-      book = books.find(b => b.title.toLowerCase().includes(lowerTitle))
-      if (book) return book
-    }
-    
     return null
-  }, [books])
+  }, [books, bookTitleMatches])
 
   const interpretNavigation = useCallback((replyText, action, bookIsbn) => {
     // If bookIsbn is provided, navigate to book details
@@ -462,31 +509,8 @@ function AIAssistant() {
         // First, try to find if the prompt mentions a book title (even without the word "book")
         // Check all books to see if any title is mentioned in the prompt
         for (const book of books) {
-          const bookTitleLower = book.title.toLowerCase()
-          // Check if book title appears in the prompt (exact match or contains)
-          // But make sure it's not just a partial word match (e.g., "library" matching "My Library")
-          if (lowerPrompt.includes(bookTitleLower)) {
-            // Additional check: make sure it's not matching a common word that happens to be in a book title
-            // Skip if the match is too short or if it's part of a known navigation phrase
-            const titleWords = bookTitleLower.split(/\s+/)
-            const isLikelyBookMatch = titleWords.length > 1 || bookTitleLower.length > 5
-            if (isLikelyBookMatch) {
-              detectedBook = book
-              bookIsbn = book.isbn
-              break
-            }
-          }
-          // Check if any significant word from book title appears in prompt
-          const bookWords = bookTitleLower.split(/\s+/).filter(w => w.length > 2)
-          const promptWords = lowerPrompt.split(/\s+/)
-          // Only match if it's a multi-word title and all words match (more strict)
-          if (bookWords.length >= 2 && bookWords.length <= 3 && bookWords.every(word => promptWords.some(pw => pw.includes(word) || word.includes(pw)))) {
-            detectedBook = book
-            bookIsbn = book.isbn
-            break
-          }
-          // Special case: if book title is just a number (like "1984"), check if that number is in prompt
-          if (/^\d+$/.test(bookTitleLower) && lowerPrompt.includes(bookTitleLower)) {
+          // Use helper function to check if book title matches the prompt
+          if (bookTitleMatches(book.title, lowerPrompt)) {
             detectedBook = book
             bookIsbn = book.isbn
             break
@@ -545,24 +569,7 @@ function AIAssistant() {
       for (const modelName of modelsToTry) {
         try {
           // Configure model with grounding (Google Search) for BC library questions
-          let modelConfig = {
-            model: modelName,
-            generationConfig: {
-              temperature: 0.4,
-              topP: 0.8,
-              topK: 32
-            }
-          }
-
-          // Enable Google Search grounding for BC library questions
-          // Note: This requires Gemini API with grounding enabled
-          // If grounding is not available, the model will fall back to standard responses
-          if (isBCLibraryQuestion) {
-            modelConfig.tools = [{
-              googleSearchRetrieval: {}
-            }]
-          }
-
+          const modelConfig = createModelConfig(modelName, isBCLibraryQuestion)
           const model = genAI.getGenerativeModel(modelConfig)
 
           // Build prompt with detected book info if available
@@ -591,14 +598,7 @@ function AIAssistant() {
             // If grounding fails (not available), try without tools
             if (isBCLibraryQuestion && (groundingError.message?.includes('tools') || groundingError.message?.includes('grounding') || groundingError.message?.includes('googleSearch'))) {
               console.warn('Google Search grounding not available, falling back to standard model')
-              const fallbackConfig = {
-                model: modelName,
-                generationConfig: {
-                  temperature: 0.4,
-                  topP: 0.8,
-                  topK: 32
-                }
-              }
+              const fallbackConfig = createModelConfig(modelName, false)
               const fallbackModel = genAI.getGenerativeModel(fallbackConfig)
               result = await fallbackModel.generateContent(prompt)
             } else {
@@ -667,48 +667,33 @@ function AIAssistant() {
       // Navigate based on request type - prioritize study room, known pages, then book navigation
       if (isStudyRoomRequest) {
         // Study room booking - navigate to resources page
-        setTimeout(() => {
-          handleNavigation('/resources')
-        }, 100)
+        navigateWithDelay(handleNavigation, '/resources')
       } else if (isKnownPageNavigation && isNavigationRequest) {
         // Known page navigation - handle directly
-        if (lowerPrompt.includes('my library') || lowerPrompt.includes('my-library')) {
-          setTimeout(() => {
-            handleNavigation('/my-library')
-          }, 100)
-        } else if (lowerPrompt.includes('home')) {
-          setTimeout(() => {
-            handleNavigation('/')
-          }, 100)
-        } else if (lowerPrompt.includes('advanced search')) {
-          setTimeout(() => {
-            handleNavigation('/advanced-search')
-          }, 100)
-        } else if (lowerPrompt.includes('book reviews')) {
-          setTimeout(() => {
-            handleNavigation('/book-reviews')
-          }, 100)
-        } else if (lowerPrompt.includes('resources')) {
-          setTimeout(() => {
-            handleNavigation('/resources')
-          }, 100)
-        } else if (lowerPrompt.includes('sign in') || lowerPrompt.includes('sign-in')) {
-          setTimeout(() => {
-            handleNavigation('/sign-in')
-          }, 100)
+        const pageRoutes = {
+          'my library': '/my-library',
+          'my-library': '/my-library',
+          'home': '/',
+          'advanced search': '/advanced-search',
+          'book reviews': '/book-reviews',
+          'resources': '/resources',
+          'sign in': '/sign-in',
+          'sign-in': '/sign-in'
+        }
+        
+        for (const [key, path] of Object.entries(pageRoutes)) {
+          if (lowerPrompt.includes(key)) {
+            navigateWithDelay(handleNavigation, path)
+            break
+          }
         }
       } else if (finalBookIsbn && (isBookNavigation || (isNavigationRequest && !isQuestionRequest))) {
         // Book navigation - always navigate if book was detected and it's a navigation request
-        // Use setTimeout to ensure message is displayed before navigation
-        setTimeout(() => {
-          handleNavigation(`/book/isbn/${finalBookIsbn}`)
-        }, 100)
+        navigateWithDelay(handleNavigation, `/book/isbn/${finalBookIsbn}`)
       } else if (isNavigationRequest && !isQuestionRequest) {
         // Regular page navigation
         if (action?.target) {
-          setTimeout(() => {
-            handleNavigation(action.target)
-          }, 100)
+          navigateWithDelay(handleNavigation, action.target)
         } else {
           // Try to infer navigation from text
           interpretNavigation(replyText, action, null)
