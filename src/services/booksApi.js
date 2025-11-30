@@ -1,8 +1,8 @@
 import { fetchBooksFromOpenLibrary } from './openLibraryApi'
 
-export async function fetchBooksCatalog() {
+export async function fetchBooksCatalog(limit=100) {
   try {
-    const books = await fetchBooksFromOpenLibrary(50)
+    const books = await fetchBooksFromOpenLibrary(limit)
     
     return books.map(book => ({
       ...book,

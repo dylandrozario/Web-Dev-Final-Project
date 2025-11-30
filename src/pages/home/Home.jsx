@@ -4,10 +4,13 @@ import resourcesData from '../../data/resources/resources.json'
 import APP_CONFIG from '../../config/constants'
 import { useBooks } from '../../context/BooksContext'
 import '../../styles/common.css'
+import { useAuth } from '../../context/AuthContext'
 import './Home.css'
 
 function Home() {
   const navigate = useNavigate()
+  const { isAuthenticated } = useAuth()
+
   const { books: booksData } = useBooks()
 
 
@@ -64,9 +67,23 @@ function Home() {
           <div className="section-header-aoty">
             <h2 className="section-title-aoty">NEW RELEASES</h2>
             <div className="section-header-links">
-              <button className="header-link active">BOOKS</button>
-              <button className="header-link" onClick={() => navigate('/advanced-search')}>
-                VIEW ALL
+            <button 
+                className="header-link" 
+                onClick={() => {
+                  if (isAuthenticated) {
+                    navigate('/recommendations')
+                  } else {
+                    navigate('/sign-in')
+                  }
+                }}
+              >
+                FOR YOU
+              </button>
+              <button 
+                className="header-link" 
+                onClick={() => navigate('/my-library')}
+              >
+                MY LIBRARY
               </button>
             </div>
           </div>

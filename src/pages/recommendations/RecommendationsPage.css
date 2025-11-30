@@ -1,0 +1,58 @@
+.recommendations-page {
+    padding: 2rem;
+  }
+
+  .recommendations-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 2rem;
+  }
+
+  h2 {
+    margin: 0;
+  }
+  
+  .recommendations-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 1rem;
+  }
+
+  .recommendation-header-links {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+  }
+  
+  .header-link {
+    background: none;
+    border: none;
+    color: var(--white);
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+    padding: 0.5rem 0;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    transition: color 0.2s ease;
+    position: relative;
+  }
+  
+  .header-link:hover {
+    color: var(--gold);
+  }
+  
+  .header-link.active {
+    color: var(--gold);
+  }
+  
+  .header-link.active::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: var(--gold);
+  }

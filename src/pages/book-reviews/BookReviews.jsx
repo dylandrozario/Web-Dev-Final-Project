@@ -265,48 +265,7 @@ function BookReviews() {
         {/* Top Header */}
         <div className="reviews-header">
           <h1 className="reviews-title">Top books of all time</h1>
-          <div className="reviews-header-icons">
-            <button className="header-icon-btn" onClick={() => navigate('/')} title="Home">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
-                <polyline points="9 22 9 12 15 12 15 22"/>
-              </svg>
-            </button>
-            <button 
-              className="header-icon-btn" 
-              title="My Library"
-              onClick={() => navigate('/my-library')}
-            >
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/>
-              </svg>
-            </button>
-            <button 
-              className="recommendations-btn" 
-              onClick={() => {
-                if (isAuthenticated) {
-                  // User is logged in - could navigate to recommendations page or show recommendations
-                  // For now, navigate to My Library which shows their saved/rated books
-                  navigate('/my-library')
-                } else {
-                  // User not logged in - navigate to sign in
-                  navigate('/sign-in')
-                }
-              }}
-            >
-              <div className="recommendations-btn-text">
-                <span className="recommendations-btn-title">
-                  {isAuthenticated ? 'View My Recommendations' : 'Go to Recommendations'}
-                </span>
-                <span className="recommendations-btn-subtitle">
-                  {isAuthenticated 
-                    ? 'See personalized recommendations based on your ratings' 
-                    : 'Sign in to see recommendations based on your ratings'}
-                </span>
-              </div>
-            </button>
           </div>
-        </div>
 
         <div className="reviews-layout">
           {/* Left Column - Main Chart */}
