@@ -1,6 +1,7 @@
 import { useParams, useNavigate } from 'react-router-dom'
 import { useMemo } from 'react'
 import resourcesData from '../../data/resources/resources.json'
+import '../../styles/common.css'
 import './ResourceDetail.css'
 
 function ResourceDetail() {
@@ -15,26 +16,26 @@ function ResourceDetail() {
   if (resource?.externalUrl) {
     // Open in new tab
     window.open(resource.externalUrl, '_blank', 'noopener,noreferrer')
-    return (
-      <div className="resource-detail-page">
-        <div className="resource-detail-container">
-          <div className="resource-redirecting">
-            <p>Opening {resource.title} in a new tab...</p>
-            <p style={{ fontSize: '0.9rem', marginTop: '1rem', opacity: 0.8 }}>
-              If the page didn't open, <a href={resource.externalUrl} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--gold)' }}>click here</a>.
-            </p>
-            <button onClick={() => navigate('/resources')} className="back-button" style={{ marginTop: '2rem' }}>
-              Back to Resources
-            </button>
+      return (
+        <div className="resource-detail-page gradient-bg-vertical">
+          <div className="resource-detail-container">
+            <div className="resource-redirecting">
+              <p>Opening {resource.title} in a new tab...</p>
+              <p style={{ fontSize: '0.9rem', marginTop: '1rem', opacity: 0.8 }}>
+                If the page didn't open, <a href={resource.externalUrl} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--gold)' }}>click here</a>.
+              </p>
+              <button onClick={() => navigate('/resources')} className="back-button" style={{ marginTop: '2rem' }}>
+                Back to Resources
+              </button>
+            </div>
           </div>
         </div>
-      </div>
-    )
-  }
+      )
+    }
 
-  if (!resource) {
-    return (
-      <div className="resource-detail-page">
+    if (!resource) {
+      return (
+        <div className="resource-detail-page gradient-bg-vertical">
         <div className="resource-detail-container">
           <div className="resource-not-found">
             <h1>Resource Not Found</h1>
@@ -224,7 +225,7 @@ function ResourceDetail() {
   }, [resource])
 
   return (
-    <div className="resource-detail-page">
+    <div className="resource-detail-page gradient-bg-vertical">
       <div className="resource-detail-container">
         {/* Header */}
         <div className="resource-detail-header" style={{ backgroundColor: resource.color }}>

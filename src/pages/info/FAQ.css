@@ -1,22 +1,9 @@
+@import '../../styles/common.css';
+
 .faq-page {
   min-height: 100vh;
-  background: linear-gradient(135deg, var(--dark-maroon) 0%, var(--maroon) 50%, var(--light-maroon) 100%);
   padding: 3rem 0;
   color: var(--white);
-}
-
-.faq-container {
-  max-width: 900px;
-  margin: 0 auto;
-  padding: 0 2rem;
-}
-
-.faq-title {
-  font-size: 3rem;
-  font-weight: 700;
-  color: var(--gold);
-  margin: 0 0 3rem 0;
-  text-align: center;
 }
 
 .faq-list {
@@ -25,38 +12,10 @@
   gap: 1.5rem;
 }
 
-.faq-item {
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 12px;
-  padding: 2rem;
-}
-
 .faq-question {
   font-size: 1.5rem;
   font-weight: 600;
   color: var(--gold);
   margin: 0 0 1rem 0;
-}
-
-.faq-answer {
-  font-size: 1.1rem;
-  line-height: 1.8;
-  color: rgba(255, 255, 255, 0.9);
-  margin: 0;
-}
-
-@media (max-width: 768px) {
-  .faq-title {
-    font-size: 2rem;
-  }
-
-  .faq-container {
-    padding: 0 1rem;
-  }
-
-  .faq-item {
-    padding: 1.5rem;
-  }
 }
 

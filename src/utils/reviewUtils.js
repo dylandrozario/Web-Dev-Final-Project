@@ -3,6 +3,12 @@ import { normalizeIsbn, generateTimestamp, toRelativeTime } from './bookUtils'
 // Storage key for reviews
 export const STORAGE_KEY_REVIEWS = 'libraryCatalog_allReviews'
 
+// Clean review text (remove unwanted characters)
+export const cleanReviewText = (text) => {
+  if (!text) return ''
+  return text.replace(/\s*\)\}/g, '')
+}
+
 // Memoize star state calculation
 export const buildStarState = (rating) => {
   const stars = []

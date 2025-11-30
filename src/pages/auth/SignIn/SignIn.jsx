@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { useAuth } from "../../../context/AuthContext";
 import { useNavigate } from "react-router-dom";
+import '../../../styles/common.css'
 import './SignIn.css'
 
 export default function SignIn() {
@@ -19,7 +20,7 @@ export default function SignIn() {
   };
 
   return (
-    <div className="page-shell sign-in-page">
+    <div className="page-shell sign-in-page gradient-bg-vertical">
       <section className="page-header-block">
         <h1>Sign In</h1>
         <p className="page-subtitle">

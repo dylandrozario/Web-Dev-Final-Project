@@ -1,9 +1,10 @@
+@import '../../../styles/common.css';
+
 .sign-in-page {
   min-height: 100vh;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(180deg, var(--dark-maroon) 0%, var(--maroon) 100%);
   color: var(--white);
   padding: 2rem;
 }

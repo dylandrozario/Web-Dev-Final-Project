@@ -1,8 +1,9 @@
+@import '../../styles/common.css';
+
 .advancedSearch {
   min-height: 100vh;
   display: flex;
   flex-direction: column;
-  background: linear-gradient(180deg, var(--dark-maroon) 0%, var(--maroon) 100%);
   color: var(--white);
 }
 

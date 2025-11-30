@@ -1,22 +1,9 @@
+@import '../../styles/common.css';
+
 .contact-page {
   min-height: 100vh;
-  background: linear-gradient(135deg, var(--dark-maroon) 0%, var(--maroon) 50%, var(--light-maroon) 100%);
   padding: 3rem 0;
   color: var(--white);
-}
-
-.contact-container {
-  max-width: 900px;
-  margin: 0 auto;
-  padding: 0 2rem;
-}
-
-.contact-title {
-  font-size: 3rem;
-  font-weight: 700;
-  color: var(--gold);
-  margin: 0 0 3rem 0;
-  text-align: center;
 }
 
 .contact-content {
@@ -25,36 +12,8 @@
   gap: 2.5rem;
 }
 
-.contact-section {
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 12px;
-  padding: 2rem;
-}
-
-.contact-section h2 {
-  font-size: 1.75rem;
-  font-weight: 600;
-  color: var(--gold);
-  margin: 0 0 1rem 0;
-}
-
 .contact-section p {
-  font-size: 1.1rem;
-  line-height: 1.8;
-  color: rgba(255, 255, 255, 0.9);
   margin: 0.5rem 0;
-}
-
-.contact-section a {
-  color: var(--gold);
-  text-decoration: none;
-  transition: color 0.2s ease;
-}
-
-.contact-section a:hover {
-  color: var(--light-gold);
-  text-decoration: underline;
 }
 
 .contact-info {
@@ -86,18 +45,6 @@
 }
 
 @media (max-width: 768px) {
-  .contact-title {
-    font-size: 2rem;
-  }
-
-  .contact-container {
-    padding: 0 1rem;
-  }
-
-  .contact-section {
-    padding: 1.5rem;
-  }
-
   .contact-info {
     grid-template-columns: 1fr;
   }

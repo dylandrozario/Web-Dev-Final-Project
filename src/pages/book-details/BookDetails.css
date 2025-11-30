@@ -1,6 +1,7 @@
+@import '../../styles/common.css';
+
 .book-details-page {
   min-height: 100vh;
-  background: linear-gradient(180deg, var(--dark-maroon) 0%, var(--maroon) 100%);
   padding: 2rem 0;
   color: var(--white);
 }
@@ -218,15 +219,13 @@
   color: var(--white);
 }
 
+@import '../../styles/common.css';
+
 .reviews-banner-btn {
   border: none;
-  border-radius: 999px;
   padding: 0.5rem 1.25rem;
   font-weight: 600;
   cursor: pointer;
-  background: linear-gradient(90deg, #ffe7b2, var(--gold));
-  color: #2f1a11;
-  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
 }
 
 
@@ -445,12 +444,17 @@
 
 .reviews-banner-btn.primary {
   align-self: flex-start;
+  background: linear-gradient(90deg, #ffe7b2, var(--gold));
+  color: #2f1a11;
+  border-radius: 999px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
 }
 
 .reviews-banner-btn.secondary {
   background: rgba(184, 148, 31, 0.2);
   color: var(--white);
   border: 1px solid rgba(184, 148, 31, 0.5);
+  border-radius: 999px;
   align-self: flex-start;
 }
 
@@ -574,13 +578,13 @@
 .thread-form button {
   align-self: flex-end;
   border: none;
-  border-radius: 999px;
   padding: 0.35rem 1rem;
   font-size: 0.85rem;
   font-weight: 600;
+  cursor: pointer;
   background: linear-gradient(90deg, #ffe7b2, var(--gold));
   color: #2f1a11;
-  cursor: pointer;
+  border-radius: 999px;
 }
 
 .thread-form button:disabled {

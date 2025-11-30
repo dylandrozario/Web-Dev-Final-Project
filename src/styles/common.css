@@ -1,0 +1,145 @@
+/* Common gradient backgrounds */
+.gradient-bg-vertical {
+  background: linear-gradient(180deg, var(--dark-maroon) 0%, var(--maroon) 100%);
+}
+
+.gradient-bg-diagonal {
+  background: linear-gradient(135deg, var(--dark-maroon) 0%, var(--maroon) 50%, var(--light-maroon) 100%);
+}
+
+/* Common page container */
+.page-container {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 0 2rem;
+}
+
+.page-container-wide {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 0 2rem;
+}
+
+/* Common page title */
+.page-title {
+  font-size: 3rem;
+  font-weight: 700;
+  color: var(--gold);
+  margin: 0 0 3rem 0;
+  text-align: center;
+}
+
+/* Common section styles */
+.content-section {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  padding: 2rem;
+}
+
+.section-title {
+  font-size: 1.75rem;
+  font-weight: 600;
+  color: var(--gold);
+  margin: 0 0 1rem 0;
+}
+
+.section-text {
+  font-size: 1.1rem;
+  line-height: 1.8;
+  color: rgba(255, 255, 255, 0.9);
+  margin: 0;
+}
+
+/* Common button styles */
+.btn-gold {
+  background: var(--gold);
+  color: var(--dark-maroon);
+  border: 1px solid var(--gold);
+  border-radius: 8px;
+  padding: 0.5rem 1.25rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-gold:hover {
+  background: var(--light-gold);
+  border-color: var(--light-gold);
+}
+
+.btn-gold-gradient {
+  background: linear-gradient(90deg, #ffe7b2, var(--gold));
+  color: #2f1a11;
+  border: none;
+  border-radius: 999px;
+  padding: 0.5rem 1.25rem;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+  transition: all 0.2s ease;
+}
+
+.btn-gold-gradient:hover {
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.2);
+  transform: translateY(-1px);
+}
+
+.btn-gold-outline {
+  background: transparent;
+  color: var(--gold);
+  border: 1px solid var(--gold);
+  border-radius: 8px;
+  padding: 0.5rem 1.25rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-gold-outline:hover {
+  background: rgba(184, 148, 31, 0.1);
+  border-color: var(--light-gold);
+  color: var(--light-gold);
+}
+
+/* Common border radius utilities */
+.rounded-sm {
+  border-radius: 8px;
+}
+
+.rounded-md {
+  border-radius: 12px;
+}
+
+.rounded-full {
+  border-radius: 999px;
+}
+
+/* Common link styles */
+.link-gold {
+  color: var(--gold);
+  text-decoration: none;
+  transition: color 0.2s ease;
+}
+
+.link-gold:hover {
+  color: var(--light-gold);
+  text-decoration: underline;
+}
+
+/* Responsive utilities */
+@media (max-width: 768px) {
+  .page-title {
+    font-size: 2rem;
+  }
+
+  .page-container,
+  .page-container-wide {
+    padding: 0 1rem;
+  }
+
+  .content-section {
+    padding: 1.5rem;
+  }
+}
+

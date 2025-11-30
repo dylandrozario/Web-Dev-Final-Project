@@ -5,6 +5,7 @@ import TrendingSection from '../../components/advanced-search/TrendingSection/Tr
 import LibrarySection from '../../components/advanced-search/LibrarySection/LibrarySection'
 import SearchForm from '../../components/advanced-search/SearchForm/SearchForm'
 import { useBooks } from '../../context/BooksContext'
+import '../../styles/common.css'
 import styles from './AdvancedSearch.module.css'
 
 function AdvancedSearch() {
@@ -246,7 +247,7 @@ function AdvancedSearch() {
   }, [searchTerm])
 
   return (
-    <div className={styles.advancedSearch}>
+    <div className={`${styles.advancedSearch} gradient-bg-vertical`}>
       <div className={styles.searchHeader}>
         <SearchForm onSearch={handleSearch} />
       </div>

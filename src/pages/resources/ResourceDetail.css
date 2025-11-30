@@ -1,6 +1,7 @@
+@import '../../styles/common.css';
+
 .resource-detail-page {
   min-height: 100vh;
-  background: linear-gradient(180deg, var(--dark-maroon) 0%, var(--maroon) 100%);
   color: var(--white);
   padding: 2rem 0;
 }

@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import resourcesData from '../../data/resources/resources.json'
 import APP_CONFIG from '../../config/constants'
 import { useBooks } from '../../context/BooksContext'
+import '../../styles/common.css'
 import './Home.css'
 
 function Home() {
@@ -56,7 +57,7 @@ function Home() {
   }
 
   return (
-    <div className="home">
+    <div className="home gradient-bg-vertical">
       <div className="home-content">
         {/* NEW RELEASES Section - AOTY Style */}
         <section className="new-releases-section">
