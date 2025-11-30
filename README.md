@@ -42,7 +42,7 @@ This web application transforms how students interact with Boston College's libr
 - **Build Tool**: Vite 7.2.4
 - **AI Integration**: Google Generative AI (Gemini)
 - **Authentication**: Firebase Authentication
-- **Search**: Fuse.js for fuzzy search
+- **Search**: Fuse.js for fuzzy search (typo-tolerant, multi-field searching)
 - **Styling**: CSS Modules and global CSS
 - **Data Sources**: Open Library API, local JSON data
 
@@ -109,14 +109,22 @@ src/
 ├── context/            # React Context providers
 │   ├── AuthContext.jsx      # Authentication state
 │   ├── BooksContext.jsx     # Books data management
-│   └── UserLibraryContext.jsx # User library state
+│   ├── UserLibraryContext.jsx # User library state
+│   └── RecommendationBooksContext.jsx # Extended book catalog for recommendations
 ├── pages/              # Page components
 │   ├── home/           # Home page
-│   ├── advanced-search/ # Search page
+│   ├── advanced-search/ # Search page (with fuzzy search)
 │   ├── book-details/   # Book detail pages
 │   ├── book-reviews/   # Book reviews page
 │   ├── my-library/     # User library page
+│   ├── recommendations/ # Personalized recommendations page
 │   └── resources/      # Resources page
+├── engine/             # Core algorithms
+│   └── recommendationEngine.js # Recommendation similarity algorithm
+├── hooks/              # Custom React hooks
+│   ├── useRecommendations.js # Recommendation generation hook
+│   ├── useBookFinder.js # Book search utilities
+│   └── useBookActions.js # Book interaction utilities
 ├── services/           # API services
 │   ├── booksApi.js     # Book data fetching
 │   └── openLibraryApi.js # Open Library API integration
@@ -129,6 +137,8 @@ src/
 │   └── firebase.js     # Firebase configuration
 ├── styles/             # Global styles
 └── utils/              # Utility functions
+    ├── storageUtils.js  # LocalStorage utilities
+    └── bookUtils.js     # Book-related utilities
 ```
 
 ## Available Scripts
@@ -143,7 +153,7 @@ src/
 
 The AI Assistant uses Google's Gemini API to provide intelligent responses about:
 - Book recommendations based on user preferences
-- BC library information (hours, services, study spaces)
+- BC library information (hours, services, study spaces) with web search grounding for current information
 - Navigation assistance
 - General questions about the application
 
@@ -154,13 +164,39 @@ The assistant analyzes user's reading history including:
 - Review themes
 - Saved and favorited books
 
+### Recommendation System
+
+The application features an intelligent book recommendation engine that provides personalized suggestions based on your reading preferences:
+
+**How It Works:**
+- **Similarity-Based Algorithm**: Calculates similarity scores between candidate books and your library
+- **Primary Factors**: 
+  - Genre matching (2 points) - Books in the same genre as your saved/favorited/rated books
+  - Author matching (1 point) - Books by authors you've previously enjoyed
+- **User Data Considered**:
+  - Saved books
+  - Favorited books
+  - Rated books (only ratings above 3 stars)
+- **Tiered Selection**: Recommendations are divided into three tiers (high, medium, low similarity) and shuffled within each tier to provide diverse suggestions
+- **Smart Caching**: Recommendations are cached in localStorage and automatically regenerate when your library changes
+- **Active Updates**: The system actively monitors your library changes (saves, favorites, ratings) and updates recommendations in real-time
+- **No Recommendations**: If you don't have any saved, favorited, or highly-rated books, the system won't show recommendations (prevents irrelevant suggestions)
+
+**Recommendation Reasons**: Each recommended book includes a reason explaining why it was suggested (e.g., "Similar to your Fantasy books" or "Same author as 'Book Title'").
+
+**Display**: Recommendations are shown on a dedicated page with pagination (10 books per page) and categorized by genre or recommendation reason.
+
 ### Book Search and Filtering
 
-- Real-time search as you type
+- **Fuzzy Search**: Powered by Fuse.js for intelligent, typo-tolerant searching
+  - Searches across book titles (40% weight), authors (30% weight), descriptions (20% weight), and genres (10% weight)
+  - Handles typos, partial matches, and word order variations
+  - Minimum match threshold of 0.4 for balanced precision and recall
+  - Real-time search as you type
 - Filter by genre, publication date, language
 - Time range filters (all-time, decades, years, custom ranges)
 - Sorting options: Popular, Esoteric, Diverse
-- Pagination for large result sets
+- Pagination for large result sets (10 books per page)
 
 ### User Library
 
