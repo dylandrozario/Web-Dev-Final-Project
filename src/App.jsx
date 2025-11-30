@@ -3,6 +3,7 @@ import { useMemo } from 'react'
 import Navbar from './components/common/Navbar'
 import ScrollToTop from './components/common/ScrollToTop/ScrollToTop'
 import AIAssistant from './components/common/AIAssistant'
+import LoadingMessage from './components/common/LoadingMessage/LoadingMessage'
 import Home from './pages/home'
 import AdvancedSearch from './pages/advanced-search'
 import BookDetails from './pages/book-details/BookDetails'
@@ -36,9 +37,7 @@ function BookDetailsWithFallback() {
     return (
       <div className="book-details-page">
         <div className="book-details-container">
-          <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--white)' }}>
-            <p>Loading book details...</p>
-          </div>
+          <LoadingMessage message="Loading book details..." />
         </div>
       </div>
     )

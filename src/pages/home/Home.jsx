@@ -35,25 +35,25 @@ function Home() {
   // Memoize sliced arrays to avoid recalculation
   const displayedNewReleases = useMemo(() => booksWithScores.slice(0, 14), [booksWithScores])
 
-  // Helper functions for resource card styling
-  const getCategoryColor = (category) => {
+  // Helper function for resource card styling (fallback if color/icon not in data)
+  const getCategoryColor = (category, defaultColor = '#6C757D') => {
     const colors = {
       event: '#4A90E2',
       service: '#50C878',
       guide: '#FF6B6B',
       database: '#9B59B6'
     }
-    return colors[category] || '#6C757D'
+    return colors[category] || defaultColor
   }
 
-  const getCategoryIcon = (category) => {
+  const getCategoryIcon = (category, defaultIcon = '📚') => {
     const icons = {
       event: '📅',
       service: '🛎️',
       guide: '📖',
       database: '💾'
     }
-    return icons[category] || '📚'
+    return icons[category] || defaultIcon
   }
 
   return (
@@ -127,16 +127,18 @@ function Home() {
                 }}
                 style={{ cursor: 'pointer' }}
               >
-                <div className="newsworthy-image" style={{ backgroundColor: getCategoryColor(item.category) }}>
-                  <div className="resource-icon">{getCategoryIcon(item.category)}</div>
+                <div className="newsworthy-image" style={{ backgroundColor: item.color || getCategoryColor(item.category) }}>
+                  <div className="resource-icon">{item.icon || getCategoryIcon(item.category)}</div>
                 </div>
                 <div className="newsworthy-content">
-                  <p className="newsworthy-source">{item.tag}</p>
+                  <p className="newsworthy-source">{item.tag || item.category}</p>
                   <h3 className="newsworthy-title">{item.title}</h3>
-                  <p className="newsworthy-description">{item.body}</p>
-                  <p className="newsworthy-meta" style={{ fontSize: '0.85rem', color: 'rgba(255, 255, 255, 0.7)', marginTop: '0.5rem' }}>
-                    {item.meta}
-                  </p>
+                  <p className="newsworthy-description">{item.body || item.description}</p>
+                  {item.meta && (
+                    <p className="newsworthy-meta" style={{ fontSize: '0.85rem', color: 'rgba(255, 255, 255, 0.7)', marginTop: '0.5rem' }}>
+                      {item.meta}
+                    </p>
+                  )}
                 </div>
               </article>
             ))}

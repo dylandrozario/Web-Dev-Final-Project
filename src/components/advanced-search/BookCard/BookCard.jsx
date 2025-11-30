@@ -1,38 +1,29 @@
 import { useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { FaHeart, FaBookmark } from 'react-icons/fa'
-import { useUserLibrary } from '../../../context/UserLibraryContext'
+import { useBookActions } from '../../../hooks/useBookActions'
 import styles from './BookCard.module.css'
 
 const BookCard = ({ book, variant = 'grid' }) => {
   const navigate = useNavigate()
-  const { favoriteBook, unfavoriteBook, saveBook, unsaveBook, getBookStatus } = useUserLibrary()
+  const { handleSave, handleFavorite, getBookStatus } = useBookActions()
 
   const handleCardClick = useCallback(() => {
     navigate(`/book/isbn/${book.isbn}`)
   }, [navigate, book.isbn])
 
-  const handleFavorite = useCallback((e) => {
-    e.stopPropagation()
-    const status = getBookStatus(book.isbn)
-    if (status.favorite) {
-      unfavoriteBook(book.isbn)
-    } else {
-      favoriteBook(book)
-    }
-  }, [favoriteBook, unfavoriteBook, getBookStatus, book])
-
-  const handleSaved = useCallback((e) => {
-    e.stopPropagation()
-    const status = getBookStatus(book.isbn)
-    if (status.saved) {
-      unsaveBook(book.isbn)
-    } else {
-      saveBook(book)
-    }
-  }, [saveBook, unsaveBook, getBookStatus, book])
-
   const status = getBookStatus(book.isbn)
+
+  const onFavorite = useCallback((e) => {
+    e.stopPropagation()
+    handleFavorite(book, status)
+  }, [handleFavorite, book, status])
+
+  const onSaved = useCallback((e) => {
+    e.stopPropagation()
+    handleSave(book, status)
+  }, [handleSave, book, status])
+
   const favorited = status.favorite
   const saved = status.saved
 
@@ -71,14 +62,14 @@ const BookCard = ({ book, variant = 'grid' }) => {
         <div className={styles.bookActions}>
           <button
             className={`${styles.bookActionBtn} ${styles.heartBtn} ${favorited ? styles.active : ''}`}
-            onClick={handleFavorite}
+            onClick={onFavorite}
             aria-label={favorited ? 'Remove from favorites' : 'Add to favorites'}
           >
             <FaHeart />
           </button>
           <button
             className={`${styles.bookActionBtn} ${styles.bookmarkBtn} ${saved ? styles.active : ''}`}
-            onClick={handleSaved}
+            onClick={onSaved}
             aria-label={saved ? 'Remove from saved' : 'Save book'}
           >
             <FaBookmark />
