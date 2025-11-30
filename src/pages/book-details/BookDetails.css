@@ -451,16 +451,11 @@
 }
 
 .reviews-banner-btn.secondary {
-  background: rgba(184, 148, 31, 0.2);
-  color: var(--white);
-  border: 1px solid rgba(184, 148, 31, 0.5);
+  background: var(--gold);
+  color: var(--dark-maroon);
+  border: none;
   border-radius: 999px;
   align-self: flex-start;
-}
-
-.reviews-banner-btn.secondary:hover {
-  background: rgba(184, 148, 31, 0.3);
-  border-color: var(--gold);
 }
 
 .rating-controls {
