@@ -532,6 +532,11 @@ function AIAssistant() {
       // If it's a navigation request and we found a book, it's definitely a book navigation
       const isBookNavigation = isNavigationRequest && detectedBook !== null
 
+      // Detect if question is specifically about BC libraries (needs web search)
+      const isBCLibraryQuestion = /bc.*library|boston college.*library|library.*hours|library.*services|library.*study|library.*printing|library.*borrowing|o'neill|bapst|burns.*library|library.*access|library.*resources/i.test(userPrompt) && 
+                                  !isNavigationRequest && 
+                                  !isRecommendationRequest
+
       // Try gemini-flash-latest first, fallback to gemini-pro
       const modelsToTry = ['gemini-flash-latest', 'gemini-pro-latest']
       let rawText = ''
@@ -539,14 +544,26 @@ function AIAssistant() {
 
       for (const modelName of modelsToTry) {
         try {
-          const model = genAI.getGenerativeModel({ 
+          // Configure model with grounding (Google Search) for BC library questions
+          let modelConfig = {
             model: modelName,
             generationConfig: {
               temperature: 0.4,
               topP: 0.8,
               topK: 32
             }
-          })
+          }
+
+          // Enable Google Search grounding for BC library questions
+          // Note: This requires Gemini API with grounding enabled
+          // If grounding is not available, the model will fall back to standard responses
+          if (isBCLibraryQuestion) {
+            modelConfig.tools = [{
+              googleSearchRetrieval: {}
+            }]
+          }
+
+          const model = genAI.getGenerativeModel(modelConfig)
 
           // Build prompt with detected book info if available
           let bookInfo = ''
@@ -558,9 +575,37 @@ function AIAssistant() {
           if (isRecommendationRequest) {
             recommendationHint = '\n\nUSER IS REQUESTING BOOK RECOMMENDATIONS. Analyze their preferences (genre, themes, rating, etc.) and provide 1-3 book recommendations with ISBNs and reasons. Include the recommendations array in your JSON response.'
           }
+
+          let webSearchHint = ''
+          if (isBCLibraryQuestion) {
+            webSearchHint = '\n\nIMPORTANT: This is a question about BC (Boston College) libraries. Use Google Search grounding to find the most current and accurate information from the BC Library website (library.bc.edu) and other official BC sources. Provide up-to-date information about library hours, services, policies, study spaces, and resources. Cite sources when possible.'
+          }
           
-          const prompt = `${siteContext}${bookInfo}${recommendationHint}\n\nUser question: "${userPrompt}"\n\nAnalyze the user's request and respond appropriately:\n- If they want to navigate to a page, include navigation action with target path\n- If they want to navigate to a book, use the bookIsbn provided above and set target to "/book/isbn/{isbn}"\n- If they're asking for book recommendations, provide recommendations array with title, isbn, and reason\n- If they're asking a question, provide explanation only (no navigation)\n- If you cannot understand, provide the "sorry couldn't understand" response\n\nIMPORTANT: If a book was detected and user wants to navigate to it, you MUST include both the reply AND the navigation action with bookIsbn.\n\nRespond with JSON format: {"reply":"your response","action":{"type":"navigate","target":"/path"} (optional), "bookIsbn":"isbn" (optional for book navigation), "recommendations":[{"title":"Book Title","isbn":"isbn","reason":"why it matches"}] (optional for recommendations)}`
-          const result = await model.generateContent(prompt)
+          const prompt = `${siteContext}${bookInfo}${recommendationHint}${webSearchHint}\n\nUser question: "${userPrompt}"\n\nAnalyze the user's request and respond appropriately:\n- If they want to navigate to a page, include navigation action with target path\n- If they want to navigate to a book, use the bookIsbn provided above and set target to "/book/isbn/{isbn}"\n- If they're asking for book recommendations, provide recommendations array with title, isbn, and reason\n- If they're asking a question about BC libraries, use web search to find current information and provide a detailed, accurate answer\n- If they're asking a question, provide explanation only (no navigation)\n- If you cannot understand, provide the "sorry couldn't understand" response\n\nIMPORTANT: If a book was detected and user wants to navigate to it, you MUST include both the reply AND the navigation action with bookIsbn.\n\nRespond with JSON format: {"reply":"your response","action":{"type":"navigate","target":"/path"} (optional), "bookIsbn":"isbn" (optional for book navigation), "recommendations":[{"title":"Book Title","isbn":"isbn","reason":"why it matches"}] (optional for recommendations)}`
+          
+          // Try to generate with grounding, fallback if not available
+          let result
+          try {
+            result = await model.generateContent(prompt)
+          } catch (groundingError) {
+            // If grounding fails (not available), try without tools
+            if (isBCLibraryQuestion && (groundingError.message?.includes('tools') || groundingError.message?.includes('grounding') || groundingError.message?.includes('googleSearch'))) {
+              console.warn('Google Search grounding not available, falling back to standard model')
+              const fallbackConfig = {
+                model: modelName,
+                generationConfig: {
+                  temperature: 0.4,
+                  topP: 0.8,
+                  topK: 32
+                }
+              }
+              const fallbackModel = genAI.getGenerativeModel(fallbackConfig)
+              result = await fallbackModel.generateContent(prompt)
+            } else {
+              throw groundingError
+            }
+          }
+          
           const response = await result.response
           rawText = response.text()
           
