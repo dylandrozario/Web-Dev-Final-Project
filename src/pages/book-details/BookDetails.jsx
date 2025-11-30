@@ -54,6 +54,23 @@ const saveReviewToStorage = (review, bookIsbn) => {
   }
 }
 
+const deleteReviewFromStorage = (reviewId, bookIsbn) => {
+  try {
+    const stored = localStorage.getItem(STORAGE_KEY_REVIEWS)
+    if (!stored) return
+    
+    const allReviews = JSON.parse(stored)
+    const normalizedIsbn = normalizeIsbn(bookIsbn)
+    
+    if (allReviews[normalizedIsbn]) {
+      allReviews[normalizedIsbn] = allReviews[normalizedIsbn].filter(r => r.id !== reviewId)
+      localStorage.setItem(STORAGE_KEY_REVIEWS, JSON.stringify(allReviews))
+    }
+  } catch (error) {
+    console.error('Failed to delete review from storage:', error)
+  }
+}
+
 const loadReviewsFromStorage = (bookIsbn) => {
   try {
     const stored = localStorage.getItem(STORAGE_KEY_REVIEWS)
@@ -118,7 +135,7 @@ export default function BookDetails() {
   const location = useLocation()
   const navigate = useNavigate()
   const { books, loading } = useBooks()
-  const { isAuthenticated } = useAuth()
+  const { isAuthenticated, user } = useAuth()
   const { saveBook, unsaveBook, favoriteBook, unfavoriteBook, rateBook, reviewBook, getBookStatus } = useUserLibrary()
 
   // Find the book by ID (using ISBN or index)
@@ -206,10 +223,32 @@ export default function BookDetails() {
   const [replyDrafts, setReplyDrafts] = useState({})
   const [heartedReviews, setHeartedReviews] = useState({})
   const [heartedReplies, setHeartedReplies] = useState({})
+  const [isEditingReview, setIsEditingReview] = useState(false)
+  const [editingReviewId, setEditingReviewId] = useState(null)
+
+  // Find user's review and separate from others
+  const userReview = useMemo(() => {
+    if (!isAuthenticated || !user) return null
+    const userId = user.uid || user.email
+    // Find review by userId, or by checking if reviewer name matches user
+    return userReviews.find(r => {
+      if (r.userId === userId) return true
+      // Also check if reviewer name matches (for backwards compatibility)
+      const userName = user.name || user.email?.split('@')[0] || 'You'
+      return r.reviewer === userName || r.reviewer === 'You'
+    }) || null
+  }, [userReviews, isAuthenticated, user])
+
+  // Other reviews (excluding user's review)
+  const otherReviews = useMemo(() => {
+    if (!userReview) return userReviews
+    return userReviews.filter(r => r.id !== userReview.id)
+  }, [userReviews, userReview])
 
   const recentReviews = useMemo(() => {
-    return [...userReviews].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)).slice(0, 3)
-  }, [userReviews])
+    const sorted = [...otherReviews].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+    return sorted.slice(0, 3)
+  }, [otherReviews])
 
   const handleReviewChange = (event) => {
     const { name, value } = event.target
@@ -369,32 +408,117 @@ export default function BookDetails() {
       return
     }
 
-    // If there's review text, save both rating and review
+    const userId = isAuthenticated && user ? (user.uid || user.email) : null
     const createdAt = new Date().toISOString()
-    const entry = {
-      id: `user-${Date.now()}-${book.isbn}`,
-      bookIsbn: book.isbn,
-      reviewer: isAuthenticated ? (bookStatus.reviewed ? 'Reader' : 'You') : 'Reader',
-      rating: ratingValue,
-      review: reviewForm.body.trim(),
-      likes: 0,
-      createdAt,
-      relativeTime: toRelativeTime(createdAt),
-      replies: []
+    
+    // If editing, update existing review; otherwise create new one
+    if (isEditingReview && editingReviewId && userReview) {
+      const updatedReview = {
+        ...userReview,
+        rating: ratingValue,
+        review: reviewForm.body.trim(),
+        updatedAt: createdAt,
+        relativeTime: toRelativeTime(createdAt)
+      }
+      
+      // Update in state
+      setUserReviews(prev => 
+        prev.map(r => r.id === editingReviewId ? updatedReview : r)
+      )
+      
+      // Save to localStorage
+      saveReviewToStorage(updatedReview, book.isbn)
+      
+      // Update in user library
+      if (isAuthenticated) {
+        rateBook(book, ratingValue)
+        reviewBook(book, reviewForm.body.trim())
+      }
+      
+      setIsEditingReview(false)
+      setEditingReviewId(null)
+    } else {
+      // Create new review (or replace existing user review)
+      // Check if user already has a review for this book
+      const existingUserReview = userReview || userReviews.find(r => {
+        if (!userId) return false
+        return r.userId === userId || 
+               (r.reviewer === (user?.name || user?.email?.split('@')[0] || 'You')) ||
+               (r.reviewer === 'You' && isAuthenticated)
+      })
+      
+      const entry = {
+        id: existingUserReview?.id || `user-${Date.now()}-${book.isbn}`,
+        bookIsbn: book.isbn,
+        userId: userId,
+        reviewer: isAuthenticated ? (user?.name || user?.email?.split('@')[0] || 'You') : 'Reader',
+        rating: ratingValue,
+        review: reviewForm.body.trim(),
+        likes: existingUserReview?.likes || 0,
+        createdAt: existingUserReview?.createdAt || createdAt,
+        relativeTime: toRelativeTime(existingUserReview?.createdAt || createdAt),
+        replies: existingUserReview?.replies || []
+      }
+      
+      // Replace existing user review or add new one
+      if (existingUserReview) {
+        setUserReviews(prev => 
+          prev.map(r => r.id === existingUserReview.id ? entry : r)
+        )
+      } else {
+        setUserReviews(prev => [entry, ...prev])
+      }
+      
+      // Save to localStorage
+      saveReviewToStorage(entry, book.isbn)
+      
+      // Save rating and review to user library
+      if (isAuthenticated) {
+        rateBook(book, ratingValue)
+        reviewBook(book, reviewForm.body.trim())
+      }
     }
     
-    // Add to state
-    setUserReviews(prev => [entry, ...prev])
+    setReviewForm({ rating: '0', body: '' })
+  }
+
+  const handleEditReview = () => {
+    if (!userReview) return
     
-    // Save to localStorage for persistence
-    saveReviewToStorage(entry, book.isbn)
+    setIsEditingReview(true)
+    setEditingReviewId(userReview.id)
+    setReviewForm({
+      rating: userReview.rating.toFixed(1),
+      body: userReview.review || ''
+    })
+  }
+
+  const handleCancelEdit = () => {
+    setIsEditingReview(false)
+    setEditingReviewId(null)
+    setReviewForm({ rating: '0', body: '' })
+    if (bookStatus.rated && bookStatus.rating) {
+      setReviewForm(prev => ({ ...prev, rating: bookStatus.rating.toFixed(1) }))
+    }
+  }
+
+  const handleDeleteReview = () => {
+    if (!userReview || !window.confirm('Are you sure you want to delete your review?')) return
     
-    // Save rating and review to user library
-    if (isAuthenticated) {
-      rateBook(book, ratingValue)
-      reviewBook(book, reviewForm.body.trim())
+    // Remove from state
+    setUserReviews(prev => prev.filter(r => r.id !== userReview.id))
+    
+    // Remove from localStorage
+    deleteReviewFromStorage(userReview.id, book.isbn)
+    
+    // Clear user library review status
+    if (isAuthenticated && book?.isbn) {
+      // Note: We can't directly remove the review from UserLibraryContext,
+      // but the review is removed from the reviews list
     }
     
+    setIsEditingReview(false)
+    setEditingReviewId(null)
     setReviewForm({ rating: '0', body: '' })
   }
 
@@ -493,6 +617,134 @@ export default function BookDetails() {
                 <p className="panel-eyebrow">Recent user reviews</p>
               </div>
 
+              {/* Show user's review first if it exists and not editing */}
+              {userReview && !isEditingReview && (
+                <article className="review-entry compact" style={{ marginBottom: '2rem', border: '2px solid var(--gold)', borderRadius: '8px', padding: '1rem' }}>
+                  <div className="review-badge">
+                    <span className="review-rating-chip subtle">{userReview.rating.toFixed(1)}/5</span>
+                    <div className="review-stars small" aria-label={`Rated ${userReview.rating} out of 5`}>
+                      {buildStarState(userReview.rating).map((state, index) => (
+                        <span key={index} className={`star ${state}`}>★</span>
+                      ))}
+                    </div>
+                    <div style={{ display: 'flex', gap: '0.375rem', marginTop: '0.5rem' }}>
+                      <button
+                        type="button"
+                        onClick={handleEditReview}
+                        style={{
+                          background: 'var(--gold)',
+                          color: 'var(--dark-maroon)',
+                          border: 'none',
+                          padding: '0.375rem 0.75rem',
+                          borderRadius: '4px',
+                          fontSize: '0.75rem',
+                          fontWeight: 600,
+                          cursor: 'pointer',
+                          transition: 'opacity 0.2s ease'
+                        }}
+                        onMouseEnter={(e) => e.target.style.opacity = '0.9'}
+                        onMouseLeave={(e) => e.target.style.opacity = '1'}
+                      >
+                        Edit
+                      </button>
+                      <button
+                        type="button"
+                        onClick={handleDeleteReview}
+                        style={{
+                          background: 'var(--gold)',
+                          color: 'var(--dark-maroon)',
+                          border: 'none',
+                          padding: '0.375rem 0.75rem',
+                          borderRadius: '4px',
+                          fontSize: '0.75rem',
+                          fontWeight: 600,
+                          cursor: 'pointer',
+                          transition: 'opacity 0.2s ease'
+                        }}
+                        onMouseEnter={(e) => e.target.style.opacity = '0.9'}
+                        onMouseLeave={(e) => e.target.style.opacity = '1'}
+                      >
+                        Delete
+                      </button>
+                    </div>
+                  </div>
+                  <div className="review-content">
+                    <div className="review-row">
+                      <p className="review-author" style={{ fontWeight: 600 }}>Your Review</p>
+                      <span className="review-meta">{userReview.relativeTime}</span>
+                    </div>
+                    <p className="review-body">{userReview.review?.replace(/\s*\)\}/g, '')}</p>
+                    <div className="review-actions">
+                      <button
+                        type="button"
+                        className="review-action"
+                        onClick={() => handleToggleThread(userReview.id)}
+                      >
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                          <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v4"/>
+                        </svg>
+                        {userReview.replies?.length || 0}
+                      </button>
+                      <button
+                        type="button"
+                        className="review-action"
+                        onClick={() => handleHeartReview(userReview.id)}
+                        aria-pressed={heartedReviews[userReview.id] || false}
+                      >
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                          <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+                        </svg>
+                        {userReview.likes || 0}
+                      </button>
+                    </div>
+                    {activeThread === userReview.id && (
+                      <div className="review-thread">
+                        <div className="thread-replies">
+                          {userReview.replies?.length ? (
+                            userReview.replies.map((reply) => (
+                              <div key={reply.id} className="thread-reply">
+                                <div className="thread-reply-meta">
+                                  <span className="thread-reply-author">{reply.author}</span>
+                                  <span className="thread-reply-time">{reply.timestamp}</span>
+                                </div>
+                                <p className="thread-reply-body">{reply.body?.replace(/\s*\)\}/g, '')}</p>
+                                <div className="thread-reply-actions">
+                                  <button
+                                    type="button"
+                                    onClick={() => handleHeartReply(userReview.id, reply.id)}
+                                    aria-pressed={heartedReplies[reply.id] || false}
+                                  >
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                      <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+                                    </svg>
+                                    {reply.likes || 0}
+                                  </button>
+                                </div>
+                              </div>
+                            ))
+                          ) : (
+                            <p className="thread-empty">No replies yet. Start the conversation.</p>
+                          )}
+                        </div>
+                        <form className="thread-form" onSubmit={(event) => handleReplySubmit(event, userReview.id)}>
+                          <textarea
+                            rows={2}
+                            placeholder="Add a reply"
+                            value={replyDrafts[userReview.id] || ''}
+                            onChange={(event) => handleReplyDraftChange(userReview.id, event.target.value)}
+                          />
+                          <button type="submit" disabled={!replyDrafts[userReview.id]?.trim()}>
+                            Reply
+                          </button>
+                        </form>
+                      </div>
+                    )}
+                  </div>
+                </article>
+              )}
+
+              {/* Show review form only if user doesn't have a review OR is editing */}
+              {(!userReview || isEditingReview) && (
               <form id="reviewComposer" className="review-composer" onSubmit={handleReviewSubmit}>
                     <div className="composer-row">
                       <label>
@@ -543,14 +795,27 @@ export default function BookDetails() {
                     value={reviewForm.body}
                     onChange={handleReviewChange}
                   />
-                  <button
-                    type="submit"
-                    className="reviews-banner-btn primary"
-                    disabled={!reviewForm.body.trim() && !bookStatus.rated}
-                  >
-                    {reviewForm.body.trim() ? 'Post review' : bookStatus.rated ? 'Update rating' : 'Post review'}
-                  </button>
+                  <div style={{ display: 'flex', gap: '0.5rem' }}>
+                    <button
+                      type="submit"
+                      className="reviews-banner-btn primary"
+                      disabled={!reviewForm.body.trim() && !bookStatus.rated}
+                    >
+                      {isEditingReview ? 'Update Review' : (reviewForm.body.trim() ? 'Post review' : bookStatus.rated ? 'Update rating' : 'Post review')}
+                    </button>
+                    {isEditingReview && (
+                      <button
+                        type="button"
+                        onClick={handleCancelEdit}
+                        className="reviews-banner-btn secondary"
+                        style={{ marginLeft: '0.5rem' }}
+                      >
+                        Cancel
+                      </button>
+                    )}
+                  </div>
                 </form>
+              )}
 
               <div className="review-list recent">
                 {recentReviews.map((review) => (
