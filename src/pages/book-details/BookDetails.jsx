@@ -25,6 +25,94 @@ const buildStarState = (rating) => {
   return stars
 }
 
+// Helper functions for localStorage review persistence
+const STORAGE_KEY_REVIEWS = 'libraryCatalog_allReviews'
+
+const saveReviewToStorage = (review, bookIsbn) => {
+  try {
+    const stored = localStorage.getItem(STORAGE_KEY_REVIEWS)
+    const allReviews = stored ? JSON.parse(stored) : {}
+    const normalizedIsbn = normalizeIsbn(bookIsbn)
+    
+    if (!allReviews[normalizedIsbn]) {
+      allReviews[normalizedIsbn] = []
+    }
+    
+    // Update existing review or add new one
+    const existingIndex = allReviews[normalizedIsbn].findIndex(r => r.id === review.id)
+    if (existingIndex >= 0) {
+      // Update existing review
+      allReviews[normalizedIsbn][existingIndex] = review
+    } else {
+      // Add new review
+      allReviews[normalizedIsbn].push(review)
+    }
+    
+    localStorage.setItem(STORAGE_KEY_REVIEWS, JSON.stringify(allReviews))
+  } catch (error) {
+    console.error('Failed to save review to storage:', error)
+  }
+}
+
+const loadReviewsFromStorage = (bookIsbn) => {
+  try {
+    const stored = localStorage.getItem(STORAGE_KEY_REVIEWS)
+    if (!stored) return []
+    
+    const allReviews = JSON.parse(stored)
+    const normalizedIsbn = normalizeIsbn(bookIsbn)
+    return allReviews[normalizedIsbn] || []
+  } catch (error) {
+    console.error('Failed to load reviews from storage:', error)
+    return []
+  }
+}
+
+// Get all reviews for a book (mock data + stored reviews)
+const getAllReviewsForBook = (bookIsbn, userReviewsData) => {
+  const normalizedIsbn = normalizeIsbn(bookIsbn)
+  const mockMatches = userReviewsData.filter(entry => normalizeIsbn(entry.bookIsbn) === normalizedIsbn)
+  const storedReviews = loadReviewsFromStorage(bookIsbn)
+  
+  // Combine mock data and stored reviews
+  const allMockReviews = mockMatches.length ? mockMatches : userReviewsData.slice(0, 10)
+  
+  const formattedMockReviews = allMockReviews.map((review, index) => {
+    const rating = parseFloat((review.rating || 4).toFixed(1))
+    const timestamp = generateTimestamp(index + Math.round(rating * 10))
+    return {
+      ...review,
+      id: `${review.bookIsbn}-${index}`,
+      rating,
+      createdAt: timestamp,
+      relativeTime: toRelativeTime(timestamp),
+      replies: (review.replies || []).map((reply, replyIndex) => ({
+        id: reply.id || `${review.bookIsbn}-${index}-reply-${replyIndex}`,
+        author: reply.author || 'Reader',
+        body: reply.body || '',
+        timestamp: reply.timestamp || toRelativeTime(timestamp),
+        likes: reply.likes || 0
+      }))
+    }
+  })
+  
+  // Merge stored reviews (user-submitted) with mock reviews
+  // Stored reviews should appear first (most recent)
+  const allReviews = [...storedReviews, ...formattedMockReviews]
+  
+  // Remove duplicates by id
+  const uniqueReviews = []
+  const seenIds = new Set()
+  for (const review of allReviews) {
+    if (!seenIds.has(review.id)) {
+      seenIds.add(review.id)
+      uniqueReviews.push(review)
+    }
+  }
+  
+  return uniqueReviews
+}
+
 export default function BookDetails() {
   const { id, isbn } = useParams()
   const location = useLocation()
@@ -97,31 +185,18 @@ export default function BookDetails() {
   const description = book.description || generateBookDescription(book)
 
 
-  const reviewSeedData = useMemo(() => {
-    const normalizedIsbn = normalizeIsbn(book.isbn)
-    const matches = userReviewsData.filter(entry => normalizeIsbn(entry.bookIsbn) === normalizedIsbn)
-    const fallback = matches.length ? matches : userReviewsData.slice(0, 3)
-    return fallback.map((review, index) => {
-      const rating = parseFloat((review.rating || 4).toFixed(1))
-      const timestamp = generateTimestamp(index + Math.round(rating * 10))
-      return {
-        ...review,
-        id: `${review.bookIsbn}-${index}`,
-        rating,
-        createdAt: timestamp,
-        relativeTime: toRelativeTime(timestamp),
-        replies: (review.replies || []).map((reply, replyIndex) => ({
-          id: reply.id || `${review.bookIsbn}-${index}-reply-${replyIndex}`,
-          author: reply.author || 'Reader',
-          body: reply.body || '',
-          timestamp: reply.timestamp || toRelativeTime(timestamp),
-          likes: reply.likes || 0
-        }))
-      }
-    })
-  }, [book.isbn])
+  // Get all reviews for this book (mock + stored)
+  const allReviewsForBook = useMemo(() => {
+    if (!book?.isbn) return []
+    return getAllReviewsForBook(book.isbn, userReviewsData)
+  }, [book?.isbn])
 
-  const [userReviews, setUserReviews] = useState(reviewSeedData)
+  const [userReviews, setUserReviews] = useState(() => allReviewsForBook)
+  
+  // Update reviews when book changes or when reviews are loaded
+  useEffect(() => {
+    setUserReviews(allReviewsForBook)
+  }, [allReviewsForBook])
   const [reviewForm, setReviewForm] = useState({
     rating: '0',
     body: ''
@@ -223,16 +298,25 @@ export default function BookDetails() {
       id: `${reviewId}-reply-${Date.now()}`,
       author: 'Reader',
       body: text,
-      timestamp: 'moments ago'
+      timestamp: toRelativeTime(new Date().toISOString()),
+      likes: 0
     }
 
-    setUserReviews(prev =>
-      prev.map(review =>
+    setUserReviews(prev => {
+      const updated = prev.map(review =>
         review.id === reviewId
           ? { ...review, replies: [...(review.replies || []), reply] }
           : review
       )
-    )
+      
+      // Persist the updated review with reply
+      const reviewWithReply = updated.find(r => r.id === reviewId)
+      if (reviewWithReply && book?.isbn) {
+        saveReviewToStorage(reviewWithReply, book.isbn)
+      }
+      
+      return updated
+    })
     setReplyDrafts(prev => ({ ...prev, [reviewId]: '' }))
   }
 
@@ -288,15 +372,22 @@ export default function BookDetails() {
     // If there's review text, save both rating and review
     const createdAt = new Date().toISOString()
     const entry = {
-      id: `user-${Date.now()}`,
-      reviewer: 'Reader',
+      id: `user-${Date.now()}-${book.isbn}`,
+      bookIsbn: book.isbn,
+      reviewer: isAuthenticated ? (bookStatus.reviewed ? 'Reader' : 'You') : 'Reader',
       rating: ratingValue,
       review: reviewForm.body.trim(),
       likes: 0,
       createdAt,
-      relativeTime: '1m'
+      relativeTime: toRelativeTime(createdAt),
+      replies: []
     }
+    
+    // Add to state
     setUserReviews(prev => [entry, ...prev])
+    
+    // Save to localStorage for persistence
+    saveReviewToStorage(entry, book.isbn)
     
     // Save rating and review to user library
     if (isAuthenticated) {
@@ -566,7 +657,7 @@ export default function BookDetails() {
               onMouseEnter={(e) => e.target.style.opacity = '0.9'}
               onMouseLeave={(e) => e.target.style.opacity = '1'}
             >
-              View More Reviews {userReviews.length > recentReviews.length ? `(${userReviews.length - recentReviews.length} more)` : ''}
+              View More Reviews {userReviews.length > recentReviews.length ? `(${userReviews.length - recentReviews.length} more)` : userReviews.length > 0 ? `(${userReviews.length} total)` : ''}
             </button>
           </div>
         </div>

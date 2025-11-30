@@ -6,6 +6,68 @@ import { useBooks } from '../../context/BooksContext'
 import { useAuth } from '../../context/AuthContext'
 import './BookDetails.css'
 
+// Helper functions for localStorage review persistence (same as BookDetails)
+const STORAGE_KEY_REVIEWS = 'libraryCatalog_allReviews'
+
+const loadReviewsFromStorage = (bookIsbn) => {
+  try {
+    const stored = localStorage.getItem(STORAGE_KEY_REVIEWS)
+    if (!stored) return []
+    
+    const allReviews = JSON.parse(stored)
+    const normalizedIsbn = normalizeIsbn(bookIsbn)
+    return allReviews[normalizedIsbn] || []
+  } catch (error) {
+    console.error('Failed to load reviews from storage:', error)
+    return []
+  }
+}
+
+// Get all reviews for a book (mock data + stored reviews) - same logic as BookDetails
+const getAllReviewsForBook = (bookIsbn, userReviewsData) => {
+  const normalizedIsbn = normalizeIsbn(bookIsbn)
+  const mockMatches = userReviewsData.filter(entry => normalizeIsbn(entry.bookIsbn) === normalizedIsbn)
+  const storedReviews = loadReviewsFromStorage(bookIsbn)
+  
+  // Combine mock data and stored reviews
+  const allMockReviews = mockMatches.length ? mockMatches : userReviewsData.slice(0, 10)
+  
+  const formattedMockReviews = allMockReviews.map((review, index) => {
+    const rating = parseFloat((review.rating || 4).toFixed(1))
+    const timestamp = generateTimestamp(index + Math.round(rating * 10))
+    return {
+      ...review,
+      id: `${review.bookIsbn}-${index}`,
+      rating,
+      createdAt: timestamp,
+      relativeTime: toRelativeTime(timestamp),
+      replies: (review.replies || []).map((reply, replyIndex) => ({
+        id: reply.id || `${review.bookIsbn}-${index}-reply-${replyIndex}`,
+        author: reply.author || 'Reader',
+        body: reply.body || '',
+        timestamp: reply.timestamp || toRelativeTime(timestamp),
+        likes: reply.likes || 0
+      }))
+    }
+  })
+  
+  // Merge stored reviews (user-submitted) with mock reviews
+  // Stored reviews should appear first (most recent)
+  const allReviews = [...storedReviews, ...formattedMockReviews]
+  
+  // Remove duplicates by id
+  const uniqueReviews = []
+  const seenIds = new Set()
+  for (const review of allReviews) {
+    if (!seenIds.has(review.id)) {
+      seenIds.add(review.id)
+      uniqueReviews.push(review)
+    }
+  }
+  
+  return uniqueReviews
+}
+
 // Memoize star state calculation
 const buildStarState = (rating) => {
   const stars = []
@@ -34,33 +96,10 @@ export default function AllReviews() {
     return books.find(b => isbnMatches(b.isbn, isbn)) || null
   }, [isbn, books, loading])
 
-  // Get all reviews for this book
+  // Get all reviews for this book (using same logic as BookDetails)
   const allReviews = useMemo(() => {
     if (!book) return []
-    const normalizedIsbn = normalizeIsbn(book.isbn)
-    const matches = userReviewsData.filter(entry => normalizeIsbn(entry.bookIsbn) === normalizedIsbn)
-    
-    // If no matches, use some fallback reviews
-    const fallback = matches.length ? matches : userReviewsData.slice(0, 10)
-    
-    return fallback.map((review, index) => {
-      const rating = parseFloat((review.rating || 4).toFixed(1))
-      const timestamp = generateTimestamp(index + Math.round(rating * 10))
-      return {
-        ...review,
-        id: `${review.bookIsbn}-${index}`,
-        rating,
-        createdAt: timestamp,
-        relativeTime: toRelativeTime(timestamp),
-        replies: (review.replies || []).map((reply, replyIndex) => ({
-          id: reply.id || `${review.bookIsbn}-${index}-reply-${replyIndex}`,
-          author: reply.author || 'Reader',
-          body: reply.body || '',
-          timestamp: reply.timestamp || toRelativeTime(timestamp),
-          likes: reply.likes || 0
-        }))
-      }
-    })
+    return getAllReviewsForBook(book.isbn, userReviewsData)
   }, [book])
 
   const [activeThread, setActiveThread] = useState(null)
