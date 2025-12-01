@@ -41,15 +41,24 @@ export function UserLibraryProvider({ children }) {
   const saveBook = useCallback((book) => {
     if (!isAuthenticated) return false
 
-    setLibrary(prev => ({
-      ...prev,
-      [book.isbn]: {
-        ...prev[book.isbn],
-        ...book,
-        saved: true,
-        savedAt: new Date().toISOString()
+    setLibrary(prev => {
+      const existing = prev[book.isbn] || {}
+      return {
+        ...prev,
+        [book.isbn]: {
+          // Preserve existing library data (including user's rating!)
+          ...existing,
+          // Only add essential book fields (not rating from catalog)
+          isbn: book.isbn,
+          title: book.title,
+          author: book.author,
+          genre: book.genre,
+          // Set saved status (preserve existing rating/review)
+          saved: true,
+          savedAt: new Date().toISOString()
+        }
       }
-    }))
+    })
     return true
   }, [isAuthenticated])
 
@@ -73,15 +82,24 @@ export function UserLibraryProvider({ children }) {
   const favoriteBook = useCallback((book) => {
     if (!isAuthenticated) return false
 
-    setLibrary(prev => ({
-      ...prev,
-      [book.isbn]: {
-        ...prev[book.isbn],
-        ...book,
-        favorite: true,
-        favoritedAt: new Date().toISOString()
+    setLibrary(prev => {
+      const existing = prev[book.isbn] || {}
+      return {
+        ...prev,
+        [book.isbn]: {
+          // Preserve existing library data (including user's rating!)
+          ...existing,
+          // Only add essential book fields (not rating from catalog)
+          isbn: book.isbn,
+          title: book.title,
+          author: book.author,
+          genre: book.genre,
+          // Set favorite status (preserve existing rating/review)
+          favorite: true,
+          favoritedAt: new Date().toISOString()
+        }
       }
-    }))
+    })
     return true
   }, [isAuthenticated])
 
@@ -105,17 +123,26 @@ export function UserLibraryProvider({ children }) {
   const rateBook = useCallback((book, rating) => {
     if (!isAuthenticated) return false
 
-    setLibrary(prev => ({
-      ...prev,
-      [book.isbn]: {
-        ...prev[book.isbn],
-        ...book,
-        rated: true,
-        rating: rating,
-        ratingLabel: getRatingLabel(rating),
-        ratedAt: new Date().toISOString()
+    setLibrary(prev => {
+      const existing = prev[book.isbn] || {}
+      return {
+        ...prev,
+        [book.isbn]: {
+          // Preserve existing library data
+          ...existing,
+          // Only add essential book fields (not rating from catalog)
+          isbn: book.isbn,
+          title: book.title,
+          author: book.author,
+          genre: book.genre,
+          // Set user's rating (this is the user's rating, not catalog average)
+          rated: true,
+          rating: rating,
+          ratingLabel: getRatingLabel(rating),
+          ratedAt: new Date().toISOString()
+        }
       }
-    }))
+    })
     return true
   }, [isAuthenticated])
 
@@ -139,16 +166,25 @@ export function UserLibraryProvider({ children }) {
   const reviewBook = useCallback((book, review) => {
     if (!isAuthenticated) return false
 
-    setLibrary(prev => ({
-      ...prev,
-      [book.isbn]: {
-        ...prev[book.isbn],
-        ...book,
-        reviewed: true,
-        review: review,
-        reviewedAt: new Date().toISOString()
+    setLibrary(prev => {
+      const existing = prev[book.isbn] || {}
+      return {
+        ...prev,
+        [book.isbn]: {
+          // Preserve existing library data (including user's rating!)
+          ...existing,
+          // Only add essential book fields (not rating from catalog)
+          isbn: book.isbn,
+          title: book.title,
+          author: book.author,
+          genre: book.genre,
+          // Set review data (preserve existing rating)
+          reviewed: true,
+          review: review,
+          reviewedAt: new Date().toISOString()
+        }
       }
-    }))
+    })
     return true
   }, [isAuthenticated])
 
@@ -190,9 +226,9 @@ export function UserLibraryProvider({ children }) {
     if (!library || typeof library !== 'object') {
       return []
     }
-    // Only include books that are saved, favorited, or rated above 3 (exclude reviewed-only books)
+    // Include all books that are saved, favorited, rated, or reviewed
     return Object.values(library).filter(book => 
-      book && (book.saved || book.favorite || (book.rated && book.rating > 3))
+      book && (book.saved || book.favorite || book.rated || book.reviewed)
     )
   }, [library])
 

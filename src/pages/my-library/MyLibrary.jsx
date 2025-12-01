@@ -37,9 +37,20 @@ export default function MyLibrary() {
       else if (libBook.saved) tag = 'Saved'
       else if (libBook.rated) tag = 'Rated'
 
+      // Merge book data, ensuring user's library data (rating, review, etc.) takes precedence over catalog data
+      // The spread order ensures libBook properties override fullBook properties
+      // But we explicitly preserve user-specific fields to be safe
       return {
         ...fullBook,
         ...libBook,
+        // Explicitly preserve user's rating and review to ensure they override catalog data
+        // Use user's rating if it exists, otherwise fall back to catalog rating
+        rating: libBook.rated && libBook.rating !== undefined && libBook.rating !== null 
+          ? libBook.rating 
+          : fullBook.rating,
+        // Use user's ratingLabel if it exists (it should be set when rating is saved)
+        ratingLabel: libBook.ratingLabel || '—',
+        review: libBook.review,
         tag,
         id: libBook.isbn
       }

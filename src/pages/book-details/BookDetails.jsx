@@ -191,7 +191,11 @@ export default function BookDetails() {
       return
     }
     
-    const ratingValue = parseFloat(reviewForm.rating)
+    // Use existing rating from bookStatus if form rating is 0 or invalid, otherwise use form rating
+    let ratingValue = parseFloat(reviewForm.rating)
+    if ((isNaN(ratingValue) || ratingValue === 0) && bookStatus.rated && bookStatus.rating) {
+      ratingValue = bookStatus.rating
+    }
     const hasReviewText = reviewForm.body.trim().length > 0
     
     // If no review text, just save the rating
