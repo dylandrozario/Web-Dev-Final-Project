@@ -5,6 +5,19 @@ const UserLibraryContext = createContext(null)
 
 const STORAGE_KEY = 'libraryCatalog_userLibrary'
 
+// Helper function to check if a book has valid status
+function hasValidStatus(book) {
+  if (!book) return false
+  
+  // Normalize invalid states
+  const isSaved = book.saved === true
+  const isFavorite = book.favorite === true
+  const isRated = book.rated === true && book.rating !== undefined && book.rating !== null && book.rating > 0
+  const isReviewed = book.reviewed === true && book.review && book.review.trim().length > 0
+  
+  return isSaved || isFavorite || isRated || isReviewed
+}
+
 export function UserLibraryProvider({ children }) {
   const { user, isAuthenticated } = useAuth()
   const [library, setLibrary] = useState({})
@@ -22,20 +35,39 @@ export function UserLibraryProvider({ children }) {
         const parsedLibrary = JSON.parse(stored)
         
         // Clean library: remove books that don't have valid saved/favorite/rated/reviewed status
+        // Also normalize invalid states (e.g., rated: true but rating: 0)
         const cleanedLibrary = {}
+        let hasChanges = false
+        
         Object.keys(parsedLibrary).forEach(isbn => {
           const book = parsedLibrary[isbn]
           if (!book) return
           
-          // Check if book has valid status
-          const isSaved = book.saved === true
-          const isFavorite = book.favorite === true
-          const isRated = book.rated === true && book.rating !== undefined && book.rating !== null && book.rating > 0
-          const isReviewed = book.reviewed === true && book.review && book.review.trim().length > 0
+          // Normalize invalid states
+          const normalizedBook = { ...book }
           
-          // Only keep books with at least one valid status
-          if (isSaved || isFavorite || isRated || isReviewed) {
-            cleanedLibrary[isbn] = book
+          // If rated is true but rating is invalid, set rated to false
+          if (normalizedBook.rated === true && (normalizedBook.rating === undefined || normalizedBook.rating === null || normalizedBook.rating <= 0)) {
+            normalizedBook.rated = false
+            normalizedBook.rating = null
+            normalizedBook.ratingLabel = '—'
+            hasChanges = true
+          }
+          
+          // If reviewed is true but review is empty, set reviewed to false
+          if (normalizedBook.reviewed === true && (!normalizedBook.review || normalizedBook.review.trim().length === 0)) {
+            normalizedBook.reviewed = false
+            normalizedBook.review = undefined
+            hasChanges = true
+          }
+          
+          // Only keep books with valid status
+          if (hasValidStatus(normalizedBook)) {
+            cleanedLibrary[isbn] = normalizedBook
+            // Check if the normalized book is different from original
+            if (JSON.stringify(normalizedBook) !== JSON.stringify(book)) {
+              hasChanges = true
+            }
           } else {
             // Debug: Log books being removed
             console.log('Removing book from library (no valid status):', {
@@ -48,11 +80,12 @@ export function UserLibraryProvider({ children }) {
               reviewed: book.reviewed,
               hasReview: !!(book.review && book.review.trim().length > 0)
             })
+            hasChanges = true
           }
         })
         
-        // Only set library if it changed (to avoid infinite loops)
-        if (Object.keys(cleanedLibrary).length !== Object.keys(parsedLibrary).length) {
+        // Always save cleaned library if there were changes, or if counts differ
+        if (hasChanges || Object.keys(cleanedLibrary).length !== Object.keys(parsedLibrary).length) {
           // Save cleaned library back to localStorage
           localStorage.setItem(`${STORAGE_KEY}_${user.uid || user.email}`, JSON.stringify(cleanedLibrary))
           setLibrary(cleanedLibrary)
@@ -67,11 +100,53 @@ export function UserLibraryProvider({ children }) {
   }, [user, isAuthenticated])
 
   // Save library to localStorage whenever it changes
+  // Clean up invalid books before saving
   useEffect(() => {
-    if (!isAuthenticated || !user || Object.keys(library).length === 0) return
+    if (!isAuthenticated || !user) return
 
     try {
-      localStorage.setItem(`${STORAGE_KEY}_${user.uid || user.email}`, JSON.stringify(library))
+      // Clean library before saving to ensure no invalid books are persisted
+      const cleanedLibrary = {}
+      
+      Object.keys(library).forEach(isbn => {
+        const book = library[isbn]
+        if (!book) return
+        
+        // Normalize invalid states first
+        const normalizedBook = { ...book }
+        
+        // If rated is true but rating is invalid, set rated to false
+        if (normalizedBook.rated === true && (normalizedBook.rating === undefined || normalizedBook.rating === null || normalizedBook.rating <= 0)) {
+          normalizedBook.rated = false
+          normalizedBook.rating = null
+          normalizedBook.ratingLabel = '—'
+        }
+        
+        // If reviewed is true but review is empty, set reviewed to false
+        if (normalizedBook.reviewed === true && (!normalizedBook.review || normalizedBook.review.trim().length === 0)) {
+          normalizedBook.reviewed = false
+          normalizedBook.review = undefined
+        }
+        
+        // Only keep books with valid status
+        if (hasValidStatus(normalizedBook)) {
+          cleanedLibrary[isbn] = normalizedBook
+        } else {
+          console.log('Removing invalid book during save:', {
+            isbn: book.isbn,
+            title: book.title,
+            saved: book.saved,
+            favorite: book.favorite,
+            rated: book.rated,
+            rating: book.rating,
+            reviewed: book.reviewed,
+            hasReview: !!(book.review && book.review.trim().length > 0)
+          })
+        }
+      })
+      
+      // Always save the cleaned library (even if empty)
+      localStorage.setItem(`${STORAGE_KEY}_${user.uid || user.email}`, JSON.stringify(cleanedLibrary))
     } catch (error) {
       console.error('Failed to save user library:', error)
     }
@@ -108,8 +183,9 @@ export function UserLibraryProvider({ children }) {
       const updated = { ...prev }
       if (updated[isbn]) {
         updated[isbn] = { ...updated[isbn], saved: false }
-        // If book has no other status, remove it
-        if (!updated[isbn].favorite && !updated[isbn].rated && !updated[isbn].reviewed) {
+        
+        // If book has no valid status, remove it
+        if (!hasValidStatus(updated[isbn])) {
           delete updated[isbn]
         }
       }
@@ -149,8 +225,9 @@ export function UserLibraryProvider({ children }) {
       const updated = { ...prev }
       if (updated[isbn]) {
         updated[isbn] = { ...updated[isbn], favorite: false }
-        // If book has no other status, remove it
-        if (!updated[isbn].saved && !updated[isbn].rated && !updated[isbn].reviewed) {
+        
+        // If book has no valid status, remove it
+        if (!hasValidStatus(updated[isbn])) {
           delete updated[isbn]
         }
       }
@@ -192,8 +269,13 @@ export function UserLibraryProvider({ children }) {
       const updated = { ...prev }
       if (updated[isbn]) {
         updated[isbn] = { ...updated[isbn], rated: false, rating: null, ratingLabel: '—' }
-        // If book has no other status, remove it
-        if (!updated[isbn].saved && !updated[isbn].favorite && !updated[isbn].reviewed) {
+        
+        // If book has no valid status, remove it
+        if (!hasValidStatus(updated[isbn])) {
+          console.log('Removing book after unrate (no valid status):', {
+            isbn: updated[isbn].isbn,
+            title: updated[isbn].title
+          })
           delete updated[isbn]
         }
       }
@@ -234,8 +316,13 @@ export function UserLibraryProvider({ children }) {
       const updated = { ...prev }
       if (updated[isbn]) {
         updated[isbn] = { ...updated[isbn], reviewed: false, review: undefined }
-        // If book has no other status, remove it
-        if (!updated[isbn].saved && !updated[isbn].favorite && !updated[isbn].rated) {
+        
+        // If book has no valid status, remove it
+        if (!hasValidStatus(updated[isbn])) {
+          console.log('Removing book after unreview (no valid status):', {
+            isbn: updated[isbn].isbn,
+            title: updated[isbn].title
+          })
           delete updated[isbn]
         }
       }
