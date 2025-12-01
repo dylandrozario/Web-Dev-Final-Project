@@ -99,9 +99,15 @@ export const fetchBookDescriptionByTitleAuthor = async (title, author) => {
 export const enhanceBookWithGoogleDescription = async (book) => {
   if (!book) return book;
   
-  // If book already has a valid description, keep it
-  if (book.description && book.description.trim().length > 50) {
-    return book;
+  // Import cleanBookDescription dynamically to avoid circular dependencies
+  const { cleanBookDescription } = await import('../utils/bookUtils');
+  
+  // Check if book already has a valid cleaned description
+  if (book.description) {
+    const cleaned = cleanBookDescription(book.description);
+    if (cleaned && cleaned.length > 50) {
+      return book;
+    }
   }
   
   // Try to fetch from Google Books by ISBN first
@@ -115,12 +121,15 @@ export const enhanceBookWithGoogleDescription = async (book) => {
     description = await fetchBookDescriptionByTitleAuthor(book.title, book.author);
   }
   
-  // If we got a description, use it (it will be cleaned by cleanBookDescription)
+  // Clean and validate the description before using it
   if (description) {
-    return {
-      ...book,
-      description: description
-    };
+    const cleaned = cleanBookDescription(description);
+    if (cleaned && cleaned.length > 50) {
+      return {
+        ...book,
+        description: cleaned
+      };
+    }
   }
   
   return book;
