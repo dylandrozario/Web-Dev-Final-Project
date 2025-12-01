@@ -294,20 +294,31 @@ export default function BookDetails() {
   const handleDeleteReview = () => {
     if (!userReview || !window.confirm('Are you sure you want to delete your review?')) return
     
+    // Preserve the rating from the review before deleting
+    const preservedRating = userReview.rating || bookStatus.rating
+    
     // Remove from state
     setUserReviews(prev => prev.filter(r => r.id !== userReview.id))
     
     // Remove from localStorage
     deleteReviewFromStorage(userReview.id, book.isbn)
     
-    // Clear user library review status
+    // Clear user library review status (but preserve rating)
     if (isAuthenticated && book?.isbn) {
       unreviewBook(book.isbn)
+      // If there was a rating, ensure it's preserved in the library
+      if (preservedRating && preservedRating > 0) {
+        rateBook(book, preservedRating)
+      }
     }
     
     setIsEditingReview(false)
     setEditingReviewId(null)
-    setReviewForm({ rating: '0', body: '' })
+    // Preserve the rating in the form, only clear the review text
+    setReviewForm({ 
+      rating: preservedRating && preservedRating > 0 ? preservedRating.toFixed(1) : '0', 
+      body: '' 
+    })
   }
 
   return (
