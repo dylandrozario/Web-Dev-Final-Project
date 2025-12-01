@@ -108,7 +108,7 @@ export function generateTieredRecommendations(userBooks, allBooks, batchSize = 3
   const scored = candidates.map(book => {
     const { score, reasons } = calculateSimilarity(userBooks, book);
     return {
-      ...book,
+    ...book,
       score,
       recommendationReasons: reasons
     };

@@ -192,7 +192,7 @@ The application features an intelligent book recommendation engine that provides
   - Searches across book titles (40% weight), authors (30% weight), descriptions (20% weight), and genres (10% weight)
   - Handles typos, partial matches, and word order variations
   - Minimum match threshold of 0.4 for balanced precision and recall
-  - Real-time search as you type
+- Real-time search as you type
 - Filter by genre, publication date, language
 - Time range filters (all-time, decades, years, custom ranges)
 - Sorting options: Popular, Esoteric, Diverse

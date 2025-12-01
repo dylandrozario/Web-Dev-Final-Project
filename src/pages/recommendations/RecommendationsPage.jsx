@@ -60,20 +60,20 @@ export default function RecommendationsPage() {
   return (
     <div className="page-shell gradient-bg-vertical">
       <div className="page-container-wide">
-        <div className="recommendations-page">
-          <div className="recommendations-header">
+<div className="recommendations-page">
+  <div className="recommendations-header">
             <h2 className="page-title">My Recommendations</h2>
-            <div className="recommendation-header-links">
+    <div className="recommendation-header-links">
               <span className="recommendations-count">
                 {sortedRecommendations.length} {sortedRecommendations.length === 1 ? 'book' : 'books'}
               </span>
-              <button className="header-link" onClick={() => navigate('/my-library')}>
-                MY LIBRARY
-              </button>
-            </div>
-          </div>
+      <button className="header-link" onClick={() => navigate('/my-library')}>
+        MY LIBRARY
+      </button>
+    </div>
+  </div>
 
-          <div className="recommendations-grid">
+      <div className="recommendations-grid">
             {paginatedBooks.map(book => (
               <div key={book.isbn} className="recommendation-item">
                 <BookCard book={book} variant="grid" />

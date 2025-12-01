@@ -585,7 +585,7 @@ function AIAssistant() {
           if (isRecommendationRequest) {
             recommendationHint = '\n\nUSER IS REQUESTING BOOK RECOMMENDATIONS. Analyze their preferences (genre, themes, rating, etc.) and provide 1-3 book recommendations with ISBNs and reasons. Include the recommendations array in your JSON response.'
           }
-
+          
           let webSearchHint = ''
           if (isBCLibraryQuestion) {
             webSearchHint = '\n\nIMPORTANT: This is a question about BC (Boston College) libraries. Use Google Search grounding to find the most current and accurate information from the BC Library website (library.bc.edu) and other official BC sources. Provide up-to-date information about library hours, services, policies, study spaces, and resources. Cite sources when possible.'

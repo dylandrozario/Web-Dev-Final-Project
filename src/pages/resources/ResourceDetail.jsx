@@ -235,20 +235,6 @@ function ResourceDetail() {
           <div className="resource-detail-icon">{resource.icon}</div>
           <h1 className="resource-detail-title">{resource.title}</h1>
           <p className="resource-detail-description">{resource.description}</p>
-          <div className="resource-detail-stats">
-            <span className="stat-item">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
-              </svg>
-              {resource.likes} likes
-            </span>
-            <span className="stat-item">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
-              </svg>
-              {resource.comments} comments
-            </span>
-          </div>
         </div>
 
         {/* Content Sections */}
