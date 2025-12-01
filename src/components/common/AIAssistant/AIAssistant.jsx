@@ -6,7 +6,7 @@ import { useBooks } from '../../../context/BooksContext'
 import { useUserLibrary } from '../../../context/UserLibraryContext'
 import { useAuth } from '../../../context/AuthContext'
 import userReviewsData from '../../../data/reviews/userReviews.json'
-import { generateBookDescription } from '../../../utils/bookUtils'
+import { generateBookDescription, cleanBookDescription } from '../../../utils/bookUtils'
 
 const GEMINI_API_KEY = import.meta.env.VITE_GEMINI_API_KEY
 
@@ -84,7 +84,10 @@ function AIAssistant() {
         : Math.min(5, Math.max(0, book.rating || 0))
       const avgRating = Math.max(0, Math.min(5.0, calculatedAvgRating))
       const totalLikes = reviews.reduce((sum, r) => sum + (r.likes || 0), 0)
-      const description = book.description || generateBookDescription(book)
+      // Clean and validate description, use fallback if invalid
+      const rawDescription = book.description
+      const cleanedDescription = rawDescription ? cleanBookDescription(rawDescription) : null
+      const description = cleanedDescription || generateBookDescription(book)
       const reviewTexts = reviews.map(r => r.review).join(' ')
       
       return {

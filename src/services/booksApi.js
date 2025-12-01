@@ -1,10 +1,29 @@
 import { fetchBooksFromOpenLibrary } from './openLibraryApi'
+import { enhanceBookWithGoogleDescription } from './googleBooksApi'
 
 export async function fetchBooksCatalog(limit=100) {
   try {
     const books = await fetchBooksFromOpenLibrary(limit)
     
-    return books.map(book => ({
+    // Enhance books with descriptions from Google Books API
+    // Fetch descriptions in batches to avoid overwhelming the API
+    const enhancedBooks = []
+    const batchSize = 10 // Process 10 books at a time
+    
+    for (let i = 0; i < books.length; i += batchSize) {
+      const batch = books.slice(i, i + batchSize)
+      const enhancedBatch = await Promise.all(
+        batch.map(book => enhanceBookWithGoogleDescription(book))
+      )
+      enhancedBooks.push(...enhancedBatch)
+      
+      // Small delay between batches to be respectful of API rate limits
+      if (i + batchSize < books.length) {
+        await new Promise(resolve => setTimeout(resolve, 100))
+      }
+    }
+    
+    return enhancedBooks.map(book => ({
       ...book,
       id: book.id || book.isbn,
       pages: book.pages || null,

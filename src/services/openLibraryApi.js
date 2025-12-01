@@ -61,9 +61,8 @@ const mapOpenLibraryBook = (olBook) => {
   const formattedIsbn = formatIsbn(isbn);
   const coverId = olBook.cover_i;
   
-  const firstSentence = Array.isArray(olBook.first_sentence) 
-    ? olBook.first_sentence.join(' ') 
-    : olBook.first_sentence || null;
+  // Don't use Open Library's first_sentence - we'll get descriptions from Google Books API instead
+  // This prevents duplicate sentences and random words issues
   
   return {
     title: olBook.title || 'Untitled',
@@ -73,7 +72,7 @@ const mapOpenLibraryBook = (olBook) => {
     rating: generateMockRating(),
     genre: getGenre(olBook.subject),
     image: getCoverImage(coverId, isbn),
-    description: firstSentence, // will be enhanced by fetchBooksFromOpenLibrary
+    description: null, // Will be fetched from Google Books API
     // store original open lib data for reference
     olKey: olBook.key,
     olEditionKey: olBook.edition_key?.[0],
@@ -83,7 +82,8 @@ const mapOpenLibraryBook = (olBook) => {
 export const fetchBooksFromOpenLibrary = async (limit = 50) => {
   try {
     const query = 'subject:fiction OR subject:nonfiction OR subject:science OR subject:history';
-    const url = `https://openlibrary.org/search.json?q=${encodeURIComponent(query)}&limit=${limit}&fields=title,author_name,first_publish_year,isbn,cover_i,subject,key,edition_key,first_sentence`;
+    // Removed first_sentence from fields since we're using Google Books API for descriptions
+    const url = `https://openlibrary.org/search.json?q=${encodeURIComponent(query)}&limit=${limit}&fields=title,author_name,first_publish_year,isbn,cover_i,subject,key,edition_key`;
     
     const response = await fetch(url);
     
@@ -101,10 +101,6 @@ export const fetchBooksFromOpenLibrary = async (limit = 50) => {
       .filter(book => book.title && (book.author_name?.length > 0 || book.isbn?.length > 0))
       .map(mapOpenLibraryBook)
       .slice(0, limit);
-    
-    // Removed unawaited Promise.all that was making 50+ unnecessary API calls
-    // Descriptions are already available from first_sentence in the search results
-    // If more detailed descriptions are needed, they can be fetched on-demand when viewing book details
     
     return books;
   } catch (error) {

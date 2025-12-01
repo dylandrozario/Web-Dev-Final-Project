@@ -2,7 +2,7 @@ import { useState, useMemo, useEffect, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import userReviewsData from '../../data/reviews/userReviews.json'
 import APP_CONFIG from '../../config/constants'
-import { formatDate, calculateReadTime, generateBookDescription, toRelativeTime } from '../../utils/bookUtils'
+import { formatDate, calculateReadTime, generateBookDescription, cleanBookDescription, toRelativeTime } from '../../utils/bookUtils'
 import { buildStarState, getAllReviewsForBook, saveReviewToStorage, deleteReviewFromStorage, cleanReviewText } from '../../utils/reviewUtils'
 import { useReviewInteractions } from '../../hooks/useReviewInteractions'
 import { useBookActions } from '../../hooks/useBookActions'
@@ -57,7 +57,67 @@ export default function BookDetails() {
   }, [book.readTimeMinutes, book.pages])
   
   const formattedDate = formatDate(book.releaseDate)
-  const description = book.description || generateBookDescription(book)
+  
+  // State for description with on-demand fetching from Google Books
+  const [description, setDescription] = useState(() => {
+    // Initial: clean and validate existing description
+    const rawDescription = book.description
+    const cleanedDescription = rawDescription ? cleanBookDescription(rawDescription) : null
+    return cleanedDescription || generateBookDescription(book)
+  })
+  const [isFetchingDescription, setIsFetchingDescription] = useState(false)
+  
+  // Fetch better description from Google Books API if current one is fallback or invalid
+  useEffect(() => {
+    if (!book) return
+    
+    const fetchBetterDescription = async () => {
+      // Skip if we already have a good description (not the generated fallback)
+      const rawDescription = book.description
+      const cleanedDescription = rawDescription ? cleanBookDescription(rawDescription) : null
+      
+      // If we have a valid cleaned description (longer than 100 chars), use it
+      if (cleanedDescription && cleanedDescription.length > 100) {
+        setDescription(cleanedDescription)
+        return
+      }
+      
+      // If description is invalid, too short, or is the generated fallback, try Google Books API
+      const generatedFallback = generateBookDescription(book)
+      if (!cleanedDescription || cleanedDescription.length <= 100 || cleanedDescription === generatedFallback) {
+        setIsFetchingDescription(true)
+        try {
+          const { fetchBookDescriptionFromGoogle, fetchBookDescriptionByTitleAuthor } = await import('../../services/googleBooksApi')
+          
+          // Try by ISBN first
+          let googleDescription = null
+          if (book.isbn) {
+            googleDescription = await fetchBookDescriptionFromGoogle(book.isbn)
+          }
+          
+          // If not found by ISBN, try by title and author
+          if (!googleDescription && book.title) {
+            googleDescription = await fetchBookDescriptionByTitleAuthor(book.title, book.author)
+          }
+          
+          // If we got a description from Google Books, clean and use it
+          if (googleDescription) {
+            const cleaned = cleanBookDescription(googleDescription)
+            if (cleaned && cleaned.length > 100) {
+              setDescription(cleaned)
+            }
+          }
+        } catch (error) {
+          console.warn('Error fetching description from Google Books:', error)
+          // Keep the fallback description
+        } finally {
+          setIsFetchingDescription(false)
+        }
+      }
+    }
+    
+    fetchBetterDescription()
+  }, [book?.isbn, book?.title, book?.author, book?.description])
 
 
   // Get all reviews for this book (mock + stored)
