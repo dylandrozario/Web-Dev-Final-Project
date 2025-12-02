@@ -22,7 +22,6 @@ export function calculateSimilarity(userBooks, candidateBook) {
   
   // If no valid user books after filtering, return no score
   if (validUserBooks.length === 0) {
-    console.log('[RecommendationEngine] calculateSimilarity: No valid user books after filtering');
     return { score: 0, reasons: [] };
   }
 
@@ -39,26 +38,15 @@ export function calculateSimilarity(userBooks, candidateBook) {
     }
   });
 
-  // Only process valid user books
+  // Only process valid user books (already filtered above)
   validUserBooks.forEach(userBook => {
-    // STRICT: Only consider books that are actually in user's library with valid data
     if (!userBook || !userBook.isbn) return;
     
-    // STRICT: Double-check that this book has a valid interaction status
-    // Must be saved, favorited, rated (with rating > 0), or reviewed (with review text)
+    // Use the specific flags for weight calculation
     const isSaved = userBook.saved === true;
     const isFavorite = userBook.favorite === true;
     const isRated = userBook.rated === true && userBook.rating !== undefined && userBook.rating !== null && userBook.rating > 0;
     const isReviewed = userBook.reviewed === true && userBook.review && userBook.review.trim().length > 0;
-    
-    // Only use books that have at least ONE valid interaction
-    const relevant = isSaved || isFavorite || isRated || isReviewed;
-    if (!relevant) {
-      // Skip this book - it doesn't have any valid interaction
-      return;
-    }
-    
-    // Use the specific flags for weight calculation
     const hasRating = isRated;
     const hasReview = isReviewed;
 
@@ -155,36 +143,14 @@ export function calculateSimilarity(userBooks, candidateBook) {
 export function generateTieredRecommendations(userBooks, allBooks, batchSize = 750) {
   // STRICT: Only use user's actual library data - no sample/mock data
   if (!allBooks || allBooks.length === 0) {
-    console.log('[RecommendationEngine] No candidate books available');
     return [];
   }
   
   // STRICT: If user has no relevant books (saved, favorited, or rated), return no recommendations
   // Do not use any fallback or sample data
   if (!userBooks || userBooks.length === 0) {
-    console.log('[RecommendationEngine] No user books provided');
     return [];
   }
-  
-  console.log('[RecommendationEngine] ===== PROCESSING RECOMMENDATIONS =====');
-  console.log('[RecommendationEngine] User books count:', userBooks.length);
-  console.log('[RecommendationEngine] User books details:', userBooks.map(book => ({
-    isbn: book.isbn,
-    title: book.title,
-    author: book.author,
-    genre: book.genre,
-    saved: book.saved,
-    favorite: book.favorite,
-    rated: book.rated,
-    rating: book.rating,
-    reviewed: book.reviewed
-  })));
-  
-  // Track genres in user's library
-  const userGenres = [...new Set(userBooks.map(b => b.genre).filter(Boolean))];
-  console.log('[RecommendationEngine] Genres in user library:', userGenres);
-  
-  console.log('[RecommendationEngine] Candidate books count:', allBooks.length);
 
   // Exclude already interacted books - use normalized ISBN comparison
   // Normalize ISBNs by removing dashes and converting to lowercase for reliable matching
@@ -224,20 +190,8 @@ export function generateTieredRecommendations(userBooks, allBooks, batchSize = 7
   const MIN_SCORE_THRESHOLD = 1.0;
   const relevantBooks = scored.filter(book => book.score >= MIN_SCORE_THRESHOLD);
   
-  console.log('[RecommendationEngine] Books with score >=', MIN_SCORE_THRESHOLD, ':', relevantBooks.length);
-  if (relevantBooks.length > 0) {
-    console.log('[RecommendationEngine] Top scored books:', relevantBooks.slice(0, 5).map(book => ({
-      title: book.title,
-      genre: book.genre,
-      score: book.score,
-      reasons: book.recommendationReasons?.map(r => r.message) || []
-    })));
-  }
-  
   // If no books have any similarity to user's library, return empty array
-  // Do not show any recommendations if they don't match user's actual data
   if (relevantBooks.length === 0) {
-    console.log('[RecommendationEngine] No books meet minimum score threshold');
     return [];
   }
 
