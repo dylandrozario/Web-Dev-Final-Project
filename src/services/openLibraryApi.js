@@ -82,29 +82,43 @@ const mapOpenLibraryBook = (olBook) => {
 export const fetchBooksFromOpenLibrary = async (limit = 50) => {
   try {
     const query = 'subject:fiction OR subject:nonfiction OR subject:science OR subject:history';
-    // Removed first_sentence from fields since we're using Google Books API for descriptions
-    const url = `https://openlibrary.org/search.json?q=${encodeURIComponent(query)}&limit=${limit}&fields=title,author_name,first_publish_year,isbn,cover_i,subject,key,edition_key`;
+    // Removed fields parameter - fetch full response and extract what we need
+    // The fields parameter was causing "Internal Server Error" from OpenLibrary API
+    const url = `https://openlibrary.org/search.json?q=${encodeURIComponent(query)}&limit=${limit}`;
     
+    console.log('[openLibraryApi] Fetching from:', url)
     const response = await fetch(url);
     
     if (!response.ok) {
+      console.error('[openLibraryApi] HTTP error:', response.status, response.statusText)
       throw new Error(`HTTP error! status: ${response.status}`);
     }
     
     const data = await response.json();
+    console.log('[openLibraryApi] Response received, docs count:', data.docs?.length || 0)
     
     if (!data.docs || !Array.isArray(data.docs)) {
+      console.error('[openLibraryApi] Invalid response format:', data)
       throw new Error('Invalid response format from Open Library');
     }
     
+    // Filter books that have required fields and map them
     const books = data.docs
-      .filter(book => book.title && (book.author_name?.length > 0 || book.isbn?.length > 0))
+      .filter(book => {
+        // Ensure book has at least title and either author or ISBN
+        const hasTitle = book.title && book.title.trim().length > 0;
+        const hasAuthor = book.author_name && Array.isArray(book.author_name) && book.author_name.length > 0;
+        const hasIsbn = book.isbn && Array.isArray(book.isbn) && book.isbn.length > 0;
+        return hasTitle && (hasAuthor || hasIsbn);
+      })
       .map(mapOpenLibraryBook)
+      .filter(book => book.isbn && book.title) // Ensure mapped book has required fields
       .slice(0, limit);
     
+    console.log('[openLibraryApi] Mapped', books.length, 'books')
     return books;
   } catch (error) {
-    console.error('Error fetching books from Open Library:', error);
+    console.error('[openLibraryApi] Error fetching books from Open Library:', error);
     throw error;
   }
 };
