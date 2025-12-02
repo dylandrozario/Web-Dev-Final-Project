@@ -1,4 +1,10 @@
-import { cleanReviewText } from '../../../utils/reviewUtils'
+import { cleanReviewText } from '../../../utils/reviewUtils';
+
+const HeartIcon = () => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+    <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+  </svg>
+);
 
 export function ReviewThread({ 
   review, 
@@ -7,7 +13,6 @@ export function ReviewThread({
   replyEditDrafts = {},
   editingReplyId = null,
   heartedReplies,
-  onToggleThread,
   onReplyDraftChange,
   onReplyEditDraftChange,
   onReplySubmit,
@@ -19,22 +24,23 @@ export function ReviewThread({
   isAuthenticated,
   user
 }) {
-  if (activeThread !== review.id) return null
+  if (activeThread !== review.id) return null;
 
   const isReplyOwner = (reply) => {
-    if (!isAuthenticated || !user) return false
-    const userId = user.uid || user.email
-    const userName = user.name || user.email?.split('@')[0] || 'You'
-    return reply.userId === userId || reply.author === userName || reply.author === 'You'
-  }
+    if (!isAuthenticated || !user) return false;
+    const userId = user.uid || user.email;
+    const userName = user.name || user.email?.split('@')[0] || 'You';
+    return reply.userId === userId || reply.author === userName || reply.author === 'You';
+  };
 
   return (
     <div className="review-thread">
       <div className="thread-replies">
         {review.replies?.length ? (
           review.replies.map((reply) => {
-            const isEditing = editingReplyId === reply.id
-            const isOwner = isReplyOwner(reply)
+            const isEditing = editingReplyId === reply.id;
+            const isOwner = isReplyOwner(reply);
+            const draftText = replyEditDrafts[reply.id] || '';
 
             return (
               <div key={reply.id} className="thread-reply">
@@ -46,17 +52,17 @@ export function ReviewThread({
                   <form 
                     className="thread-reply-edit-form"
                     onSubmit={(e) => {
-                      e.preventDefault()
-                      onUpdateReply(review.id, reply.id)
+                      e.preventDefault();
+                      onUpdateReply(review.id, reply.id);
                     }}
                   >
                     <textarea
                       rows={2}
-                      value={replyEditDrafts[reply.id] || ''}
+                      value={draftText}
                       onChange={(e) => onReplyEditDraftChange(reply.id, e.target.value)}
                     />
                     <div className="thread-reply-edit-actions">
-                      <button type="submit" disabled={!replyEditDrafts[reply.id]?.trim()}>
+                      <button type="submit" disabled={!draftText.trim()}>
                         Save
                       </button>
                       <button type="button" onClick={onCancelEditReply}>
@@ -73,9 +79,7 @@ export function ReviewThread({
                         onClick={() => onHeartReply(review.id, reply.id)}
                         aria-pressed={heartedReplies[reply.id] || false}
                       >
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                          <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
-                        </svg>
+                        <HeartIcon />
                         {reply.likes || 0}
                       </button>
                       {isOwner && (
@@ -100,7 +104,7 @@ export function ReviewThread({
                   </>
                 )}
               </div>
-            )
+            );
           })
         ) : (
           <p className="thread-empty">No replies yet. Start the conversation.</p>
@@ -120,15 +124,26 @@ export function ReviewThread({
         </form>
       )}
     </div>
-  )
+  );
 }
+
+const CommentIcon = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v4"/>
+  </svg>
+);
+
+const HeartIconLarge = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+    <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+  </svg>
+);
 
 export function ReviewActions({ 
   review, 
-  activeThread, 
-  heartedReviews,
   onToggleThread,
-  onHeartReview
+  onHeartReview,
+  heartedReviews
 }) {
   return (
     <div className="review-actions">
@@ -137,9 +152,7 @@ export function ReviewActions({
         className="review-action"
         onClick={() => onToggleThread(review.id)}
       >
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-          <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v4"/>
-        </svg>
+        <CommentIcon />
         {review.replies?.length || 0}
       </button>
       <button
@@ -148,12 +161,10 @@ export function ReviewActions({
         onClick={() => onHeartReview(review.id)}
         aria-pressed={heartedReviews[review.id] || false}
       >
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-          <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
-        </svg>
+        <HeartIconLarge />
         {review.likes || 0}
       </button>
     </div>
-  )
+  );
 }
 

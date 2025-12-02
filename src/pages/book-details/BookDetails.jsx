@@ -1,19 +1,20 @@
-import { useState, useMemo, useEffect, useCallback } from 'react'
-import { useNavigate } from 'react-router-dom'
-import userReviewsData from '../../data/reviews/userReviews.json'
-import APP_CONFIG from '../../config/constants'
-import { formatDate, calculateReadTime, generateBookDescription, cleanBookDescription, toRelativeTime } from '../../utils/bookUtils'
-import { buildStarState, getAllReviewsForBook, saveReviewToStorage, deleteReviewFromStorage, cleanReviewText } from '../../utils/reviewUtils'
-import { useReviewInteractions } from '../../hooks/useReviewInteractions'
-import { useBookActions } from '../../hooks/useBookActions'
-import { useRequireAuth } from '../../hooks/useRequireAuth'
-import { useBookFinder } from '../../hooks/useBookFinder'
-import LoadingMessage from '../../components/common/LoadingMessage/LoadingMessage'
-import { ReviewThread, ReviewActions } from '../../components/common/ReviewThread'
-import { useBooks } from '../../context/BooksContext'
-import { useUserLibrary } from '../../context/UserLibraryContext'
-import { useAuth } from '../../context/AuthContext'
-import './BookDetails.css'
+import { useState, useMemo, useEffect, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
+import userReviewsData from '../../data/reviews/userReviews.json';
+import APP_CONFIG from '../../config/constants';
+import { formatDate, calculateReadTime, generateBookDescription, cleanBookDescription, toRelativeTime } from '../../utils/bookUtils';
+import { buildStarState, getAllReviewsForBook, saveReviewToStorage, deleteReviewFromStorage, cleanReviewText } from '../../utils/reviewUtils';
+import { useReviewInteractions } from '../../hooks/useReviewInteractions';
+import { useBookActions } from '../../hooks/useBookActions';
+import { useRequireAuth } from '../../hooks/useRequireAuth';
+import { useBookFinder } from '../../hooks/useBookFinder';
+import LoadingMessage from '../../components/common/LoadingMessage/LoadingMessage';
+import { ReviewThread, ReviewActions } from '../../components/common/ReviewThread';
+import { useUserLibrary } from '../../context/UserLibraryContext';
+import { useAuth } from '../../context/AuthContext';
+import './BookDetails.css';
+
+const DEFAULT_BOOK_STATUS = { saved: false, favorite: false, rated: false, reviewed: false, rating: null, ratingLabel: '—' };
 
 export default function BookDetails() {
   const navigate = useNavigate()
@@ -39,46 +40,35 @@ export default function BookDetails() {
     return null
   }
 
-  // Get book status from user library (safe to call now that book exists)
   const bookStatus = useMemo(() => {
     try {
-      return getBookStatus(book.isbn)
+      return getBookStatus(book.isbn);
     } catch (error) {
-      console.error('Error getting book status:', error)
-      return { saved: false, favorite: false, rated: false, reviewed: false, rating: null, ratingLabel: '—' }
+      console.error('Error getting book status:', error);
+      return DEFAULT_BOOK_STATUS;
     }
-  }, [book.isbn, getBookStatus])
+  }, [book.isbn, getBookStatus]);
 
-  // Calculate read time: use provided value, or calculate from pages, or use default
   const readTimeMinutes = useMemo(() => {
-    if (book.readTimeMinutes) return book.readTimeMinutes
-    if (book.pages) return Math.round(book.pages * 1.25)
-    return calculateReadTime() // Uses default pages
-  }, [book.readTimeMinutes, book.pages])
+    return book.readTimeMinutes || (book.pages ? Math.round(book.pages * 1.25) : calculateReadTime());
+  }, [book.readTimeMinutes, book.pages]);
   
-  const formattedDate = formatDate(book.releaseDate)
+  const formattedDate = formatDate(book.releaseDate);
   
-  // Description - clean existing or generate fallback
-  // Descriptions are now fetched from Google Books API during catalog load
   const description = useMemo(() => {
-    const rawDescription = book.description
-    const cleanedDescription = rawDescription ? cleanBookDescription(rawDescription) : null
-    return cleanedDescription || generateBookDescription(book)
-  }, [book.description, book.genre, book.title, book.author])
+    return cleanBookDescription(book.description) || generateBookDescription(book);
+  }, [book.description, book.genre, book.title, book.author]);
 
 
-  // Get all reviews for this book (mock + stored)
   const allReviewsForBook = useMemo(() => {
-    if (!book?.isbn) return []
-    return getAllReviewsForBook(book.isbn, userReviewsData)
-  }, [book?.isbn])
+    return book?.isbn ? getAllReviewsForBook(book.isbn, userReviewsData) : [];
+  }, [book?.isbn]);
 
-  const [userReviews, setUserReviews] = useState(() => allReviewsForBook)
+  const [userReviews, setUserReviews] = useState(() => allReviewsForBook);
   
-  // Update reviews when book changes or when reviews are loaded
   useEffect(() => {
-    setUserReviews(allReviewsForBook)
-  }, [allReviewsForBook])
+    setUserReviews(allReviewsForBook);
+  }, [allReviewsForBook]);
   const [reviewForm, setReviewForm] = useState({
     rating: '0',
     body: ''
@@ -87,247 +77,199 @@ export default function BookDetails() {
   const [isEditingReview, setIsEditingReview] = useState(false)
   const [editingReviewId, setEditingReviewId] = useState(null)
 
-  // Use custom hook for review interactions (replies, likes, etc.)
-  const {
-    activeThread,
-    replyDrafts,
-    replyEditDrafts,
-    editingReplyId,
-    heartedReviews,
-    heartedReplies,
-    handleToggleThread,
-    handleReplyDraftChange,
-    handleReplyEditDraftChange,
-    handleReplySubmit,
-    handleEditReply,
-    handleUpdateReply,
-    handleCancelEditReply,
-    handleDeleteReply,
-    handleHeartReview,
-    handleHeartReply
-  } = useReviewInteractions(userReviews, setUserReviews, book?.isbn, isAuthenticated, user)
+  const reviewInteractions = useReviewInteractions(userReviews, setUserReviews, book?.isbn, isAuthenticated, user);
+  
+  const reviewThreadProps = useMemo(() => ({
+    activeThread: reviewInteractions.activeThread,
+    replyDrafts: reviewInteractions.replyDrafts,
+    replyEditDrafts: reviewInteractions.replyEditDrafts,
+    editingReplyId: reviewInteractions.editingReplyId,
+    heartedReplies: reviewInteractions.heartedReplies,
+    onReplyDraftChange: reviewInteractions.handleReplyDraftChange,
+    onReplyEditDraftChange: reviewInteractions.handleReplyEditDraftChange,
+    onReplySubmit: reviewInteractions.handleReplySubmit,
+    onEditReply: reviewInteractions.handleEditReply,
+    onUpdateReply: reviewInteractions.handleUpdateReply,
+    onCancelEditReply: reviewInteractions.handleCancelEditReply,
+    onDeleteReply: reviewInteractions.handleDeleteReply,
+    onHeartReply: reviewInteractions.handleHeartReply,
+    isAuthenticated,
+    user
+  }), [reviewInteractions, isAuthenticated, user]);
 
-  // Find user's review and separate from others
   const userReview = useMemo(() => {
-    if (!isAuthenticated || !user) return null
-    const userId = user.uid || user.email
-    // Find review by userId, or by checking if reviewer name matches user
-    return userReviews.find(r => {
-      if (r.userId === userId) return true
-      // Also check if reviewer name matches (for backwards compatibility)
-      const userName = user.name || user.email?.split('@')[0] || 'You'
-      return r.reviewer === userName || r.reviewer === 'You'
-    }) || null
-  }, [userReviews, isAuthenticated, user])
+    if (!isAuthenticated || !user) return null;
+    const userId = user.uid || user.email;
+    const userName = user.name || user.email?.split('@')[0] || 'You';
+    return userReviews.find(r => r.userId === userId || r.reviewer === userName || r.reviewer === 'You') || null;
+  }, [userReviews, isAuthenticated, user]);
 
-  // Other reviews (excluding user's review)
   const otherReviews = useMemo(() => {
-    if (!userReview) return userReviews
-    return userReviews.filter(r => r.id !== userReview.id)
-  }, [userReviews, userReview])
+    return userReview ? userReviews.filter(r => r.id !== userReview.id) : userReviews;
+  }, [userReviews, userReview]);
 
   const recentReviews = useMemo(() => {
-    const sorted = [...otherReviews].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
-    return sorted.slice(0, 3)
-  }, [otherReviews])
+    return [...otherReviews].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)).slice(0, 3);
+  }, [otherReviews]);
 
-  const handleReviewChange = (event) => {
-    const { name, value } = event.target
-    setReviewForm(prev => ({ ...prev, [name]: value }))
-  }
+  const handleReviewChange = useCallback((event) => {
+    const { name, value } = event.target;
+    setReviewForm(prev => ({ ...prev, [name]: value }));
+  }, []);
 
-  // Update review form rating if book is already rated
   useEffect(() => {
     if (bookStatus.rated && bookStatus.rating) {
-      setReviewForm(prev => ({ ...prev, rating: bookStatus.rating.toFixed(1) }))
+      setReviewForm(prev => ({ ...prev, rating: bookStatus.rating.toFixed(1) }));
     }
-  }, [bookStatus.rated, bookStatus.rating])
+  }, [bookStatus.rated, bookStatus.rating]);
 
-  // Handle save/favorite actions
-  const onSave = useCallback(() => {
-    handleSave(book, bookStatus)
-  }, [handleSave, book, bookStatus])
-  
-  const onFavorite = useCallback(() => {
-    handleFavorite(book, bookStatus)
-  }, [handleFavorite, book, bookStatus])
+  const onSave = useCallback(() => handleSave(book, bookStatus), [handleSave, book, bookStatus]);
+  const onFavorite = useCallback(() => handleFavorite(book, bookStatus), [handleFavorite, book, bookStatus]);
 
-  const ratingAsNumber = parseFloat(reviewForm.rating) || 0
-  const starPickerValue = hoverRating ?? ratingAsNumber
+  const ratingAsNumber = parseFloat(reviewForm.rating) || 0;
+  const starPickerValue = hoverRating ?? ratingAsNumber;
 
-  const handleStarSelect = (value) => {
-    const ratingValue = parseFloat(value.toFixed(1))
-    setReviewForm(prev => ({ ...prev, rating: value.toFixed(1) }))
-    setHoverRating(null)
-    
-    // Auto-save rating when user selects a star (if authenticated)
+  const handleStarSelect = useCallback((value) => {
+    const ratingValue = parseFloat(value.toFixed(1));
+    setReviewForm(prev => ({ ...prev, rating: value.toFixed(1) }));
+    setHoverRating(null);
     if (isAuthenticated && book?.isbn) {
-      rateBook(book, ratingValue)
+      rateBook(book, ratingValue);
     }
-  }
+  }, [isAuthenticated, book, rateBook]);
 
-
-  const handleRatingOnly = () => {
+  const handleRatingOnly = useCallback(() => {
     requireAuth(() => {
-      if (!book?.isbn) return
-      
-      const ratingValue = parseFloat(reviewForm.rating)
-      if (isNaN(ratingValue) || ratingValue < 0 || ratingValue > 5) return
-      
-      rateBook(book, ratingValue)
-    })
-  }
-
-  const handleUnrate = () => {
-    requireAuth(() => {
-      if (!book?.isbn) return
-      
-      if (window.confirm('Are you sure you want to remove your rating?')) {
-        unrateBook(book.isbn)
-        setReviewForm(prev => ({ ...prev, rating: '0' }))
+      if (!book?.isbn) return;
+      const ratingValue = parseFloat(reviewForm.rating);
+      if (!isNaN(ratingValue) && ratingValue >= 0 && ratingValue <= 5) {
+        rateBook(book, ratingValue);
       }
-    })
-  }
+    });
+  }, [requireAuth, book, reviewForm.rating, rateBook]);
 
-  const handleReviewSubmit = (event) => {
-    event.preventDefault()
+  const handleUnrate = useCallback(() => {
+    requireAuth(() => {
+      if (!book?.isbn || !window.confirm('Are you sure you want to remove your rating?')) return;
+      unrateBook(book.isbn);
+      setReviewForm(prev => ({ ...prev, rating: '0' }));
+    });
+  }, [requireAuth, book, unrateBook]);
+
+  const handleReviewSubmit = useCallback((event) => {
+    event.preventDefault();
     
-    // Prevent creating a new review if user already has one (unless editing)
     if (userReview && !isEditingReview) {
-      alert('You already have a review for this book. Please edit your existing review or reply to others.')
-      return
+      alert('You already have a review for this book. Please edit your existing review or reply to others.');
+      return;
     }
     
-    // Use existing rating from bookStatus if form rating is 0 or invalid, otherwise use form rating
-    let ratingValue = parseFloat(reviewForm.rating)
+    let ratingValue = parseFloat(reviewForm.rating);
     if ((isNaN(ratingValue) || ratingValue === 0) && bookStatus.rated && bookStatus.rating) {
-      ratingValue = bookStatus.rating
+      ratingValue = bookStatus.rating;
     }
-    const hasReviewText = reviewForm.body.trim().length > 0
     
-    // If no review text, just save the rating
+    const hasReviewText = reviewForm.body.trim().length > 0;
     if (!hasReviewText) {
       if (isAuthenticated && book?.isbn) {
-        rateBook(book, ratingValue)
+        rateBook(book, ratingValue);
       }
-      return
+      return;
     }
 
-    const userId = isAuthenticated && user ? (user.uid || user.email) : null
-    const createdAt = new Date().toISOString()
+    const userId = isAuthenticated && user ? (user.uid || user.email) : null;
+    const createdAt = new Date().toISOString();
+    const reviewText = reviewForm.body.trim();
     
-    // If editing, update existing review; otherwise create new one
     if (isEditingReview && editingReviewId && userReview) {
       const updatedReview = {
         ...userReview,
         rating: ratingValue,
-        review: reviewForm.body.trim(),
+        review: reviewText,
         updatedAt: createdAt,
         relativeTime: toRelativeTime(createdAt)
-      }
+      };
       
-      // Update in state
-      setUserReviews(prev => 
-        prev.map(r => r.id === editingReviewId ? updatedReview : r)
-      )
+      setUserReviews(prev => prev.map(r => r.id === editingReviewId ? updatedReview : r));
+      saveReviewToStorage(updatedReview, book.isbn);
       
-      // Save to localStorage
-      saveReviewToStorage(updatedReview, book.isbn)
-      
-      // Update in user library
       if (isAuthenticated) {
-        rateBook(book, ratingValue)
-        reviewBook(book, reviewForm.body.trim())
+        rateBook(book, ratingValue);
+        reviewBook(book, reviewText);
       }
       
-      setIsEditingReview(false)
-      setEditingReviewId(null)
+      setIsEditingReview(false);
+      setEditingReviewId(null);
     } else {
-      // Only create new review if user doesn't have one
       if (userReview) {
-        alert('You already have a review for this book. Please edit your existing review.')
-        return
+        alert('You already have a review for this book. Please edit your existing review.');
+        return;
       }
       
       const entry = {
         id: `user-${Date.now()}-${book.isbn}`,
         bookIsbn: book.isbn,
-        userId: userId,
+        userId,
         reviewer: isAuthenticated ? (user?.name || user?.email?.split('@')[0] || 'You') : 'Reader',
         rating: ratingValue,
-        review: reviewForm.body.trim(),
+        review: reviewText,
         likes: 0,
-        createdAt: createdAt,
+        createdAt,
         relativeTime: toRelativeTime(createdAt),
         replies: []
-      }
+      };
       
-      // Add new review
-      setUserReviews(prev => [entry, ...prev])
+      setUserReviews(prev => [entry, ...prev]);
+      saveReviewToStorage(entry, book.isbn);
       
-      // Save to localStorage
-      saveReviewToStorage(entry, book.isbn)
-      
-      // Save rating and review to user library
       if (isAuthenticated) {
-        rateBook(book, ratingValue)
-        reviewBook(book, reviewForm.body.trim())
+        rateBook(book, ratingValue);
+        reviewBook(book, reviewText);
       }
     }
     
-    setReviewForm({ rating: '0', body: '' })
-  }
+    setReviewForm({ rating: '0', body: '' });
+  }, [userReview, isEditingReview, reviewForm, bookStatus, isAuthenticated, book, user, editingReviewId, rateBook, reviewBook]);
 
-  const handleEditReview = () => {
-    if (!userReview) return
-    
-    setIsEditingReview(true)
-    setEditingReviewId(userReview.id)
+  const handleEditReview = useCallback(() => {
+    if (!userReview) return;
+    setIsEditingReview(true);
+    setEditingReviewId(userReview.id);
     setReviewForm({
       rating: userReview.rating.toFixed(1),
       body: userReview.review || ''
-    })
-  }
+    });
+  }, [userReview]);
 
-  const handleCancelEdit = () => {
-    setIsEditingReview(false)
-    setEditingReviewId(null)
-    setReviewForm({ rating: '0', body: '' })
-    if (bookStatus.rated && bookStatus.rating) {
-      setReviewForm(prev => ({ ...prev, rating: bookStatus.rating.toFixed(1) }))
-    }
-  }
+  const handleCancelEdit = useCallback(() => {
+    setIsEditingReview(false);
+    setEditingReviewId(null);
+    const rating = bookStatus.rated && bookStatus.rating ? bookStatus.rating.toFixed(1) : '0';
+    setReviewForm({ rating, body: '' });
+  }, [bookStatus]);
 
-  const handleDeleteReview = () => {
-    if (!userReview || !window.confirm('Are you sure you want to delete your review?')) return
+  const handleDeleteReview = useCallback(() => {
+    if (!userReview || !window.confirm('Are you sure you want to delete your review?')) return;
     
-    // Preserve the rating from the review before deleting
-    const preservedRating = userReview.rating || (bookStatus.rated && bookStatus.rating ? bookStatus.rating : null)
+    const preservedRating = userReview.rating || (bookStatus.rated && bookStatus.rating ? bookStatus.rating : null);
     
-    // Remove from state
-    setUserReviews(prev => prev.filter(r => r.id !== userReview.id))
+    setUserReviews(prev => prev.filter(r => r.id !== userReview.id));
+    deleteReviewFromStorage(userReview.id, book.isbn);
     
-    // Remove from localStorage
-    deleteReviewFromStorage(userReview.id, book.isbn)
-    
-    // Clear user library review status (but preserve rating if it exists)
     if (isAuthenticated && book?.isbn) {
-      unreviewBook(book.isbn)
-      // If there was a valid rating, ensure it's preserved in the library
+      unreviewBook(book.isbn);
       if (preservedRating && preservedRating > 0) {
-        rateBook(book, preservedRating)
+        rateBook(book, preservedRating);
       }
-      // If no valid rating, the book will be removed by unreviewBook if it has no other status
     }
     
-    setIsEditingReview(false)
-    setEditingReviewId(null)
-    // Preserve the rating in the form, only clear the review text
+    setIsEditingReview(false);
+    setEditingReviewId(null);
     setReviewForm({ 
       rating: preservedRating && preservedRating > 0 ? preservedRating.toFixed(1) : '0', 
       body: '' 
-    })
-  }
+    });
+  }, [userReview, bookStatus, isAuthenticated, book, unreviewBook, rateBook]);
 
   return (
     <div className="book-details-page gradient-bg-vertical">
@@ -426,7 +368,7 @@ export default function BookDetails() {
 
               {/* Show user's review first if it exists and not editing */}
               {userReview && !isEditingReview && (
-                <article className="review-entry compact" style={{ marginBottom: '2rem', border: '2px solid var(--gold)', borderRadius: '8px', padding: '1rem' }}>
+                <article className="review-entry compact user-review-highlight">
                   <div className="review-badge">
                     <span className="review-rating-chip subtle">{userReview.rating.toFixed(1)}/5</span>
                     <div className="review-stars small" aria-label={`Rated ${userReview.rating} out of 5`}>
@@ -434,62 +376,30 @@ export default function BookDetails() {
                         <span key={index} className={`star ${state}`}>★</span>
                       ))}
                     </div>
-                    <div style={{ display: 'flex', gap: '0.375rem', marginTop: '0.5rem' }}>
-                      {['Edit', 'Delete'].map((label) => (
-                        <button
-                          key={label}
-                          type="button"
-                          onClick={label === 'Edit' ? handleEditReview : handleDeleteReview}
-                          style={{
-                            background: 'var(--gold)',
-                            color: 'var(--dark-maroon)',
-                            border: 'none',
-                            padding: '0.375rem 0.75rem',
-                            borderRadius: '4px',
-                            fontSize: '0.75rem',
-                            fontWeight: 600,
-                            cursor: 'pointer',
-                            transition: 'opacity 0.2s ease'
-                          }}
-                          onMouseEnter={(e) => e.target.style.opacity = '0.9'}
-                          onMouseLeave={(e) => e.target.style.opacity = '1'}
-                        >
-                          {label}
-                        </button>
-                      ))}
+                    <div className="review-action-buttons">
+                      <button type="button" className="review-action-btn" onClick={handleEditReview}>
+                        Edit
+                      </button>
+                      <button type="button" className="review-action-btn" onClick={handleDeleteReview}>
+                        Delete
+                      </button>
                     </div>
                   </div>
                   <div className="review-content">
                     <div className="review-row">
-                      <p className="review-author" style={{ fontWeight: 600 }}>Your Review</p>
+                      <p className="review-author user-review-label">Your Review</p>
                       <span className="review-meta">{userReview.relativeTime}</span>
                     </div>
                     <p className="review-body">{cleanReviewText(userReview.review)}</p>
                     <ReviewActions
                       review={userReview}
-                      activeThread={activeThread}
-                      heartedReviews={heartedReviews}
-                      onToggleThread={handleToggleThread}
-                      onHeartReview={handleHeartReview}
+                      onToggleThread={reviewInteractions.handleToggleThread}
+                      onHeartReview={reviewInteractions.handleHeartReview}
+                      heartedReviews={reviewInteractions.heartedReviews}
                     />
                     <ReviewThread
                       review={userReview}
-                      activeThread={activeThread}
-                      replyDrafts={replyDrafts}
-                      replyEditDrafts={replyEditDrafts}
-                      editingReplyId={editingReplyId}
-                      heartedReplies={heartedReplies}
-                      onToggleThread={handleToggleThread}
-                      onReplyDraftChange={handleReplyDraftChange}
-                      onReplyEditDraftChange={handleReplyEditDraftChange}
-                      onReplySubmit={handleReplySubmit}
-                      onEditReply={handleEditReply}
-                      onUpdateReply={handleUpdateReply}
-                      onCancelEditReply={handleCancelEditReply}
-                      onDeleteReply={handleDeleteReply}
-                      onHeartReply={handleHeartReply}
-                      isAuthenticated={isAuthenticated}
-                      user={user}
+                      {...reviewThreadProps}
                     />
                   </div>
                 </article>
@@ -516,7 +426,7 @@ export default function BookDetails() {
                   <div className="rating-controls">
                     <div className="review-star-picker" role="radiogroup" aria-label="Select rating">
                       {[1, 2, 3, 4, 5].map((value) => {
-                        const state = starPickerValue >= value ? 'full' : starPickerValue >= value - 0.5 ? 'half' : 'empty'
+                        const state = starPickerValue >= value ? 'full' : starPickerValue >= value - 0.5 ? 'half' : 'empty';
                         return (
                           <button
                             key={value}
@@ -529,10 +439,10 @@ export default function BookDetails() {
                           >
                             ★
                           </button>
-                        )
+                        );
                       })}
                     </div>
-                    <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                    <div className="rating-buttons">
                       <button
                         type="button"
                         className="reviews-banner-btn secondary"
@@ -559,20 +469,25 @@ export default function BookDetails() {
                     onChange={handleReviewChange}
                     disabled={userReview && !isEditingReview}
                   />
-                  <div style={{ display: 'flex', gap: '0.5rem' }}>
+                  <div className="submit-buttons">
                     <button
                       type="submit"
                       className="reviews-banner-btn primary"
                       disabled={(!reviewForm.body.trim() && !bookStatus.rated) || (userReview && !isEditingReview)}
                     >
-                      {isEditingReview ? 'Update Review' : (reviewForm.body.trim() ? 'Post review' : bookStatus.rated ? 'Update rating' : 'Post review')}
+                      {isEditingReview 
+                        ? 'Update Review' 
+                        : reviewForm.body.trim() 
+                          ? 'Post review' 
+                          : bookStatus.rated 
+                            ? 'Update rating' 
+                            : 'Post review'}
                     </button>
                     {isEditingReview && (
                       <button
                         type="button"
                         onClick={handleCancelEdit}
                         className="reviews-banner-btn secondary"
-                        style={{ marginLeft: '0.5rem' }}
                       >
                         Cancel
                       </button>
@@ -600,54 +515,31 @@ export default function BookDetails() {
                       <p className="review-body">{cleanReviewText(review.review)}</p>
                       <ReviewActions
                         review={review}
-                        activeThread={activeThread}
-                        heartedReviews={heartedReviews}
-                        onToggleThread={handleToggleThread}
-                        onHeartReview={handleHeartReview}
+                        onToggleThread={reviewInteractions.handleToggleThread}
+                        onHeartReview={reviewInteractions.handleHeartReview}
+                        heartedReviews={reviewInteractions.heartedReviews}
                       />
                       <ReviewThread
                         review={review}
-                        activeThread={activeThread}
-                        replyDrafts={replyDrafts}
-                        replyEditDrafts={replyEditDrafts}
-                        editingReplyId={editingReplyId}
-                        heartedReplies={heartedReplies}
-                        onToggleThread={handleToggleThread}
-                        onReplyDraftChange={handleReplyDraftChange}
-                        onReplyEditDraftChange={handleReplyEditDraftChange}
-                        onReplySubmit={handleReplySubmit}
-                        onEditReply={handleEditReply}
-                        onUpdateReply={handleUpdateReply}
-                        onCancelEditReply={handleCancelEditReply}
-                        onDeleteReply={handleDeleteReply}
-                        onHeartReply={handleHeartReply}
-                        isAuthenticated={isAuthenticated}
-                        user={user}
+                        {...reviewThreadProps}
                       />
                     </div>
                   </article>
             ))}
           </div>
           
-          {/* View More Reviews Button */}
-          <div style={{ marginTop: '2rem', textAlign: 'center' }}>
+          <div className="view-more-reviews">
             <button
+              className="view-more-btn"
               onClick={() => navigate(`/book/isbn/${book.isbn}/reviews`)}
-              style={{
-                background: 'var(--gold)',
-                color: 'var(--dark-maroon)',
-                border: 'none',
-                padding: '0.75rem 2rem',
-                borderRadius: '8px',
-                fontSize: '1rem',
-                fontWeight: 600,
-                cursor: 'pointer',
-                transition: 'opacity 0.2s ease'
-              }}
-              onMouseEnter={(e) => e.target.style.opacity = '0.9'}
-              onMouseLeave={(e) => e.target.style.opacity = '1'}
             >
-              View More Reviews {userReviews.length > recentReviews.length ? `(${userReviews.length - recentReviews.length} more)` : userReviews.length > 0 ? `(${userReviews.length} total)` : ''}
+              View More Reviews {
+                userReviews.length > recentReviews.length 
+                  ? `(${userReviews.length - recentReviews.length} more)` 
+                  : userReviews.length > 0 
+                    ? `(${userReviews.length} total)` 
+                    : ''
+              }
             </button>
           </div>
         </div>
@@ -657,3 +549,4 @@ export default function BookDetails() {
     </div>
   )
 }
+

@@ -5,90 +5,55 @@
  */
 
 /**
- * Fetch book description from Google Books API by ISBN
- * @param {string} isbn - ISBN of the book (with or without dashes)
+ * Fetch book description from Google Books API
+ * @param {Object} params - Search parameters
+ * @param {string} [params.isbn] - ISBN of the book
+ * @param {string} [params.title] - Book title
+ * @param {string} [params.author] - Book author
  * @returns {Promise<string|null>} Book description or null if not found
  */
-export const fetchBookDescriptionFromGoogle = async (isbn) => {
-  if (!isbn) return null;
+const fetchDescription = async ({ isbn, title, author }) => {
+  if (!isbn && !title) return null;
 
   try {
-    // Clean ISBN (remove dashes)
-    const cleanIsbn = isbn.replace(/-/g, '');
+    let query;
+    if (isbn) {
+      const cleanIsbn = isbn.replace(/-/g, '');
+      query = `isbn:${cleanIsbn}`;
+    } else {
+      query = `intitle:${encodeURIComponent(title)}`;
+      if (author) {
+        query += `+inauthor:${encodeURIComponent(author)}`;
+      }
+    }
     
-    // Search Google Books API by ISBN
-    const url = `https://www.googleapis.com/books/v1/volumes?q=isbn:${cleanIsbn}&maxResults=1`;
-    
+    const url = `https://www.googleapis.com/books/v1/volumes?q=${query}&maxResults=1`;
     const response = await fetch(url);
     
-    if (!response.ok) {
-      console.warn(`Google Books API error for ISBN ${isbn}:`, response.status);
-      return null;
-    }
+    if (!response.ok) return null;
     
     const data = await response.json();
+    const description = data.items?.[0]?.volumeInfo?.description;
     
-    if (!data.items || data.items.length === 0) {
-      return null;
-    }
-    
-    const volumeInfo = data.items[0].volumeInfo;
-    
-    // Google Books provides description in volumeInfo.description
-    // This is usually a high-quality publisher description, not just first sentence
-    if (volumeInfo.description) {
-      return volumeInfo.description.trim();
-    }
-    
-    return null;
+    return description?.trim() || null;
   } catch (error) {
-    // Silently fail - don't break the app if Google Books API is unavailable
-    console.warn(`Error fetching description from Google Books for ISBN ${isbn}:`, error);
+    console.warn('Error fetching description from Google Books:', error);
     return null;
   }
 };
 
 /**
+ * Fetch book description from Google Books API by ISBN
+ */
+export const fetchBookDescriptionFromGoogle = async (isbn) => {
+  return fetchDescription({ isbn });
+};
+
+/**
  * Fetch book description from Google Books API by title and author
- * @param {string} title - Book title
- * @param {string} author - Book author
- * @returns {Promise<string|null>} Book description or null if not found
  */
 export const fetchBookDescriptionByTitleAuthor = async (title, author) => {
-  if (!title) return null;
-
-  try {
-    // Build search query
-    let query = `intitle:${encodeURIComponent(title)}`;
-    if (author) {
-      query += `+inauthor:${encodeURIComponent(author)}`;
-    }
-    
-    const url = `https://www.googleapis.com/books/v1/volumes?q=${query}&maxResults=1`;
-    
-    const response = await fetch(url);
-    
-    if (!response.ok) {
-      return null;
-    }
-    
-    const data = await response.json();
-    
-    if (!data.items || data.items.length === 0) {
-      return null;
-    }
-    
-    const volumeInfo = data.items[0].volumeInfo;
-    
-    if (volumeInfo.description) {
-      return volumeInfo.description.trim();
-    }
-    
-    return null;
-  } catch (error) {
-    console.warn(`Error fetching description from Google Books for "${title}":`, error);
-    return null;
-  }
+  return fetchDescription({ title, author });
 };
 
 /**
@@ -99,36 +64,28 @@ export const fetchBookDescriptionByTitleAuthor = async (title, author) => {
 export const enhanceBookWithGoogleDescription = async (book) => {
   if (!book) return book;
   
-  // Import cleanBookDescription dynamically to avoid circular dependencies
   const { cleanBookDescription } = await import('../utils/bookUtils');
   
-  // Check if book already has a valid cleaned description
+  // Check if book already has a valid description
   if (book.description) {
     const cleaned = cleanBookDescription(book.description);
-    if (cleaned && cleaned.length > 50) {
-      return book;
-    }
+    if (cleaned?.length > 50) return book;
   }
   
-  // Try to fetch from Google Books by ISBN first
-  let description = null;
-  if (book.isbn) {
-    description = await fetchBookDescriptionFromGoogle(book.isbn);
-  }
+  // Try ISBN first, then title/author
+  let description = book.isbn 
+    ? await fetchBookDescriptionFromGoogle(book.isbn)
+    : null;
   
-  // If not found by ISBN, try by title and author
   if (!description && book.title) {
     description = await fetchBookDescriptionByTitleAuthor(book.title, book.author);
   }
   
-  // Clean and validate the description before using it
+  // Clean and validate description
   if (description) {
     const cleaned = cleanBookDescription(description);
-    if (cleaned && cleaned.length > 50) {
-      return {
-        ...book,
-        description: cleaned
-      };
+    if (cleaned?.length > 50) {
+      return { ...book, description: cleaned };
     }
   }
   

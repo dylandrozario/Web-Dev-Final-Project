@@ -75,99 +75,57 @@ function AIAssistant() {
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState('')
 
-  // Create enriched book data with reviews and descriptions
   const enrichedBooks = useMemo(() => {
     return books.map(book => {
-      const reviews = userReviewsData.filter(r => r.bookIsbn === book.isbn)
-      const calculatedAvgRating = reviews.length > 0 
-        ? reviews.reduce((sum, r) => sum + Math.min(5, Math.max(0, r.rating || 0)), 0) / reviews.length 
-        : Math.min(5, Math.max(0, book.rating || 0))
-      const avgRating = Math.max(0, Math.min(5.0, calculatedAvgRating))
-      const totalLikes = reviews.reduce((sum, r) => sum + (r.likes || 0), 0)
-      // Clean and validate description, use fallback if invalid
-      const rawDescription = book.description
-      const cleanedDescription = rawDescription ? cleanBookDescription(rawDescription) : null
-      const description = cleanedDescription || generateBookDescription(book)
-      const reviewTexts = reviews.map(r => r.review).join(' ')
+      const reviews = userReviewsData.filter(r => r.bookIsbn === book.isbn);
+      const avgRating = reviews.length > 0
+        ? reviews.reduce((sum, r) => sum + Math.min(5, Math.max(0, r.rating || 0)), 0) / reviews.length
+        : Math.min(5, Math.max(0, book.rating || 0));
       
       return {
         ...book,
-        description,
-        avgRating: parseFloat(avgRating.toFixed(1)),
+        description: cleanBookDescription(book.description) || generateBookDescription(book),
+        avgRating: parseFloat(Math.max(0, Math.min(5.0, avgRating)).toFixed(1)),
         reviewCount: reviews.length,
-        totalLikes,
-        reviewTexts,
-        reviews: reviews.map(r => ({
-          rating: r.rating,
-          text: r.review,
-          likes: r.likes
-        }))
-      }
-    })
-  }, [books])
+        totalLikes: reviews.reduce((sum, r) => sum + (r.likes || 0), 0),
+        reviewTexts: reviews.map(r => r.review).join(' '),
+        reviews: reviews.map(r => ({ rating: r.rating, text: r.review, likes: r.likes }))
+      };
+    });
+  }, [books]);
 
-  // Analyze user's reading preferences from their library
   const userPreferences = useMemo(() => {
-    if (!isAuthenticated || !library || Object.keys(library).length === 0) {
-      return null
-    }
+    if (!isAuthenticated || !library || Object.keys(library).length === 0) return null;
 
-    const userBooks = getAllBooks()
-    if (userBooks.length === 0) {
-      return null
-    }
+    const userBooks = getAllBooks();
+    if (userBooks.length === 0) return null;
 
-    // Analyze genres
-    const genreCounts = {}
-    userBooks.forEach(book => {
-      if (book.genre) {
-        genreCounts[book.genre] = (genreCounts[book.genre] || 0) + 1
-      }
-    })
-    const topGenres = Object.entries(genreCounts)
-      .sort((a, b) => b[1] - a[1])
-      .slice(0, 5)
-      .map(([genre]) => genre)
+    const getTopItems = (items, count) => {
+      const counts = {};
+      items.forEach(item => { if (item) counts[item] = (counts[item] || 0) + 1; });
+      return Object.entries(counts)
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, count)
+        .map(([item]) => item);
+    };
 
-    // Analyze ratings
-    const ratedBooks = userBooks.filter(book => book.rated && book.rating)
-    const avgUserRating = ratedBooks.length > 0
-      ? ratedBooks.reduce((sum, book) => sum + (book.rating || 0), 0) / ratedBooks.length
-      : null
-    const favoriteBooks = userBooks.filter(book => book.favorite)
-    const savedBooks = userBooks.filter(book => book.saved)
-    const reviewedBooks = userBooks.filter(book => book.reviewed && book.review)
-
-    // Extract themes from reviews
-    const reviewTexts = reviewedBooks
-      .map(book => book.review)
-      .filter(Boolean)
-      .join(' ')
-
-    // Analyze authors
-    const authorCounts = {}
-    userBooks.forEach(book => {
-      if (book.author) {
-        authorCounts[book.author] = (authorCounts[book.author] || 0) + 1
-      }
-    })
-    const favoriteAuthors = Object.entries(authorCounts)
-      .sort((a, b) => b[1] - a[1])
-      .slice(0, 3)
-      .map(([author]) => author)
+    const ratedBooks = userBooks.filter(b => b.rated && b.rating);
+    const mapBook = (b, fields) => Object.fromEntries(fields.map(f => [f, b[f]]));
 
     return {
       totalBooks: userBooks.length,
-      topGenres,
-      avgUserRating,
-      favoriteBooks: favoriteBooks.map(b => ({ title: b.title, author: b.author, genre: b.genre, rating: b.rating })),
-      savedBooks: savedBooks.map(b => ({ title: b.title, author: b.author, genre: b.genre })),
-      ratedBooks: ratedBooks.map(b => ({ title: b.title, author: b.author, genre: b.genre, rating: b.rating })),
-      reviewedBooks: reviewedBooks.map(b => ({ title: b.title, author: b.author, genre: b.genre, review: b.review })),
-      reviewTexts,
-      favoriteAuthors
-    }
-  }, [isAuthenticated, library, getAllBooks])
+      topGenres: getTopItems(userBooks.map(b => b.genre), 5),
+      avgUserRating: ratedBooks.length > 0
+        ? ratedBooks.reduce((sum, b) => sum + (b.rating || 0), 0) / ratedBooks.length
+        : null,
+      favoriteBooks: userBooks.filter(b => b.favorite).map(b => mapBook(b, ['title', 'author', 'genre', 'rating'])),
+      savedBooks: userBooks.filter(b => b.saved).map(b => mapBook(b, ['title', 'author', 'genre'])),
+      ratedBooks: ratedBooks.map(b => mapBook(b, ['title', 'author', 'genre', 'rating'])),
+      reviewedBooks: userBooks.filter(b => b.reviewed && b.review).map(b => mapBook(b, ['title', 'author', 'genre', 'review'])),
+      reviewTexts: userBooks.filter(b => b.reviewed && b.review).map(b => b.review).filter(Boolean).join(' '),
+      favoriteAuthors: getTopItems(userBooks.map(b => b.author), 3)
+    };
+  }, [isAuthenticated, library, getAllBooks]);
 
   const siteContext = useMemo(() => {
     // Create detailed book information for recommendations
@@ -372,105 +330,110 @@ function AIAssistant() {
     ].join('\n')
   }, [enrichedBooks, userPreferences])
 
-  const toggleChat = () => {
-    setIsOpen(prev => !prev)
-  }
+  const toggleChat = useCallback(() => setIsOpen(prev => !prev), []);
+  const appendMessage = useCallback((message) => setMessages(prev => [...prev, message]), []);
+  const handleNavigation = useCallback((target) => target && navigate(target), [navigate]);
 
-  const appendMessage = useCallback((message) => {
-    setMessages(prev => [...prev, message])
-  }, [])
-
-  const handleNavigation = useCallback((target) => {
-    if (!target) return
-    navigate(target)
-  }, [navigate])
-
-  // Helper function to check if a book title matches a search term
   const bookTitleMatches = useCallback((bookTitle, searchTerm) => {
-    const bookTitleLower = bookTitle.toLowerCase()
-    const searchLower = searchTerm.toLowerCase()
+    const bookLower = bookTitle.toLowerCase();
+    const searchLower = searchTerm.toLowerCase();
     
-    // Exact match
-    if (bookTitleLower === searchLower) return true
-    
-    // Contains match
-    if (bookTitleLower.includes(searchLower) || searchLower.includes(bookTitleLower)) {
-      // Additional check: make sure it's not matching a common word
-      const titleWords = bookTitleLower.split(/\s+/)
-      return titleWords.length > 1 || bookTitleLower.length > 5
+    if (bookLower === searchLower) return true;
+    if (bookLower.includes(searchLower) || searchLower.includes(bookLower)) {
+      const words = bookLower.split(/\s+/);
+      return words.length > 1 || bookLower.length > 5;
     }
     
-    // Word-based matching for multi-word titles
-    const searchWords = searchLower.split(/\s+/).filter(w => w.length > 2)
-    const bookWords = bookTitleLower.split(/\s+/).filter(w => w.length > 2)
+    const searchWords = searchLower.split(/\s+/).filter(w => w.length > 2);
+    const bookWords = bookLower.split(/\s+/).filter(w => w.length > 2);
     
     if (searchWords.length >= 2 && searchWords.length <= 3) {
-      return searchWords.every(word => 
-        bookWords.some(bw => bw.includes(word) || word.includes(bw))
-      )
+      return searchWords.every(word => bookWords.some(bw => bw.includes(word) || word.includes(bw)));
     }
     
-    // Special case: numeric titles (like "1984")
-    if (/^\d+$/.test(searchLower)) {
-      return bookTitleLower.includes(searchLower)
-    }
-    
-    return false
-  }, [])
+    return /^\d+$/.test(searchLower) && bookLower.includes(searchLower);
+  }, []);
 
   const findBookByTitle = useCallback((title) => {
-    if (!title || !books || books.length === 0) return null
+    if (!title || !books?.length) return null;
     
-    const lowerTitle = title.toLowerCase().trim()
+    const lowerTitle = title.toLowerCase().trim();
+    const exactMatch = books.find(b => b.title.toLowerCase() === lowerTitle);
+    if (exactMatch) return exactMatch;
     
-    // Try exact match first
-    let book = books.find(b => b.title.toLowerCase() === lowerTitle)
-    if (book) return book
+    const helperMatch = books.find(b => bookTitleMatches(b.title, lowerTitle));
+    if (helperMatch) return helperMatch;
     
-    // Use helper function for matching
-    book = books.find(b => bookTitleMatches(b.title, lowerTitle))
-    if (book) return book
-    
-    // Additional word-based matching for multi-word titles
-    const titleWords = lowerTitle.split(/\s+/).filter(w => w.length > 1)
+    const titleWords = lowerTitle.split(/\s+/).filter(w => w.length > 1);
     if (titleWords.length > 0) {
-      book = books.find(b => {
-        const bookTitleLower = b.title.toLowerCase()
-        const matchingWords = titleWords.filter(word => bookTitleLower.includes(word))
-        return matchingWords.length >= Math.min(titleWords.length, 2)
-      })
-      if (book) return book
+      return books.find(b => {
+        const bookLower = b.title.toLowerCase();
+        const matches = titleWords.filter(word => bookLower.includes(word));
+        return matches.length >= Math.min(titleWords.length, 2);
+      }) || null;
     }
     
-    return null
-  }, [books, bookTitleMatches])
+    return null;
+  }, [books, bookTitleMatches]);
 
   const interpretNavigation = useCallback((replyText, action, bookIsbn) => {
-    // If bookIsbn is provided, navigate to book details
-    if (bookIsbn) {
-      handleNavigation(`/book/isbn/${bookIsbn}`)
-      return
-    }
+    if (bookIsbn) return handleNavigation(`/book/isbn/${bookIsbn}`);
+    if (action?.type === 'navigate' && action.target) return handleNavigation(action.target);
+    
+    const navMatch = replyText.match(/NAVIGATE:([^\s]+)/i);
+    if (navMatch?.[1]) return handleNavigation(navMatch[1]);
+    
+    const lowerReply = replyText.toLowerCase();
+    const found = NAV_OPTIONS.find(option => lowerReply.includes(option.label));
+    if (found) handleNavigation(found.path);
+  }, [handleNavigation]);
 
-    // If action is provided, use it
-    if (action?.type === 'navigate' && action.target) {
-      handleNavigation(action.target)
-      return
-    }
+  const detectRequestType = useCallback((userPrompt) => {
+    const lowerPrompt = userPrompt.toLowerCase();
+    const knownPagePhrases = [
+      'my library', 'my-library', 'my library page',
+      'book a study room', 'book study room', 'reserve study room', 'study room',
+      'home', 'advanced search', 'book reviews', 'resources', 'sign in', 'sign-in',
+      'about', 'faq', 'contact', 'privacy'
+    ];
+    
+    return {
+      lowerPrompt,
+      isStudyRoomRequest: /book.*study room|reserve.*study room|study room.*book|study room.*reserve/i.test(userPrompt),
+      isNavigationRequest: /take me to|go to|navigate to|show me|open/i.test(userPrompt),
+      isQuestionRequest: /what is|tell me about|explain|what's/i.test(userPrompt),
+      isRecommendationRequest: /find.*book|recommend.*book|suggest.*book|want.*book|looking for.*book|help.*find|book.*about/i.test(userPrompt),
+      isKnownPageNavigation: knownPagePhrases.some(phrase => lowerPrompt.includes(phrase)),
+      isBCLibraryQuestion: /bc.*library|boston college.*library|library.*hours|library.*services|library.*study|library.*printing|library.*borrowing|o'neill|bapst|burns.*library|library.*access|library.*resources/i.test(userPrompt) &&
+        !/take me to|go to|navigate to|show me|open/i.test(userPrompt) &&
+        !/find.*book|recommend.*book|suggest.*book|want.*book|looking for.*book|help.*find|book.*about/i.test(userPrompt)
+    };
+  }, []);
 
-    // Fallback: try to extract navigation from text
-    const navMatch = replyText.match(/NAVIGATE:([^\s]+)/i)
-    if (navMatch?.[1]) {
-      handleNavigation(navMatch[1])
-      return
+  const detectBookInPrompt = useCallback((userPrompt, requestTypes) => {
+    if (requestTypes.isStudyRoomRequest || requestTypes.isKnownPageNavigation) return null;
+    
+    const lowerPrompt = requestTypes.lowerPrompt;
+    for (const book of books) {
+      if (bookTitleMatches(book.title, lowerPrompt)) {
+        return book;
+      }
     }
-
-    const lowerReply = replyText.toLowerCase()
-    const found = NAV_OPTIONS.find(option => lowerReply.includes(option.label))
-    if (found) {
-      handleNavigation(found.path)
+    
+    if (/book/i.test(userPrompt) && !requestTypes.isStudyRoomRequest) {
+      const bookMatch = userPrompt.match(/(?:take me to|show me|find|go to|open)\s+(.+?)\s+book/i);
+      if (bookMatch?.[1]) {
+        const potentialTitle = bookMatch[1].trim();
+        const knownPagePhrases = ['my library', 'my-library', 'book a study room', 'book study room', 'reserve study room', 'study room', 'home', 'advanced search', 'book reviews', 'resources', 'sign in', 'sign-in', 'about', 'faq', 'contact', 'privacy'];
+        if (!knownPagePhrases.some(phrase => potentialTitle.toLowerCase().includes(phrase))) {
+          const foundBook = findBookByTitle(potentialTitle);
+          if (foundBook) return foundBook;
+        }
+      }
     }
-  }, [handleNavigation])
+    
+    return null;
+  }, [books, bookTitleMatches, findBookByTitle]);
 
   const requestAssistant = useCallback(async (userPrompt) => {
     const genAI = getGenAI()
@@ -483,237 +446,138 @@ function AIAssistant() {
       return
     }
 
-    setIsLoading(true)
-    setError('')
+    setIsLoading(true);
+    setError('');
     try {
-      // Pre-process user prompt to detect patterns
-      const lowerPrompt = userPrompt.toLowerCase()
-      const isStudyRoomRequest = /book.*study room|reserve.*study room|study room.*book|study room.*reserve/i.test(userPrompt)
-      const isNavigationRequest = /take me to|go to|navigate to|show me|open/i.test(userPrompt)
-      const isQuestionRequest = /what is|tell me about|explain|what's/i.test(userPrompt)
-      const isRecommendationRequest = /find.*book|recommend.*book|suggest.*book|want.*book|looking for.*book|help.*find|book.*about/i.test(userPrompt)
-      
-      // Known page navigation phrases - skip book detection for these
-      const knownPagePhrases = [
-        'my library', 'my-library', 'my library page',
-        'book a study room', 'book study room', 'reserve study room', 'study room',
-        'home', 'advanced search', 'book reviews', 'resources', 'sign in', 'sign-in',
-        'about', 'faq', 'contact', 'privacy'
-      ]
-      const isKnownPageNavigation = knownPagePhrases.some(phrase => lowerPrompt.includes(phrase))
-      
-      // Try to extract book title - check if prompt contains a book title
-      // BUT skip if it's a study room request or known page navigation
-      let bookIsbn = null
-      let detectedBook = null
-      
-      // Only try to detect books if it's not a study room request or known page navigation
-      if (!isStudyRoomRequest && !isKnownPageNavigation) {
-        // First, try to find if the prompt mentions a book title (even without the word "book")
-        // Check all books to see if any title is mentioned in the prompt
-        for (const book of books) {
-          // Use helper function to check if book title matches the prompt
-          if (bookTitleMatches(book.title, lowerPrompt)) {
-            detectedBook = book
-            bookIsbn = book.isbn
-            break
+      const requestTypes = detectRequestType(userPrompt);
+      const detectedBook = detectBookInPrompt(userPrompt, requestTypes);
+      const bookIsbn = detectedBook?.isbn || null;
+      const isBookNavigation = requestTypes.isNavigationRequest && detectedBook !== null;
+      const buildPrompt = (detectedBook, requestTypes) => {
+        let bookInfo = '';
+        if (detectedBook) {
+          bookInfo = `\n\nDETECTED BOOK: "${detectedBook.title}" by ${detectedBook.author} (ISBN: ${detectedBook.isbn})\nIf user wants this book, use bookIsbn: "${detectedBook.isbn}" and navigate to: "/book/isbn/${detectedBook.isbn}"`;
+        }
+        
+        const recommendationHint = requestTypes.isRecommendationRequest
+          ? '\n\nUSER IS REQUESTING BOOK RECOMMENDATIONS. Analyze their preferences (genre, themes, rating, etc.) and provide 1-3 book recommendations with ISBNs and reasons. Include the recommendations array in your JSON response.'
+          : '';
+        
+        const webSearchHint = requestTypes.isBCLibraryQuestion
+          ? '\n\nIMPORTANT: This is a question about BC (Boston College) libraries. Use Google Search grounding to find the most current and accurate information from the BC Library website (library.bc.edu) and other official BC sources. Provide up-to-date information about library hours, services, policies, study spaces, and resources. Cite sources when possible.'
+          : '';
+        
+        return `${siteContext}${bookInfo}${recommendationHint}${webSearchHint}\n\nUser question: "${userPrompt}"\n\nAnalyze the user's request and respond appropriately:\n- If they want to navigate to a page, include navigation action with target path\n- If they want to navigate to a book, use the bookIsbn provided above and set target to "/book/isbn/{isbn}"\n- If they're asking for book recommendations, provide recommendations array with title, isbn, and reason\n- If they're asking a question about BC libraries, use web search to find current information and provide a detailed, accurate answer\n- If they're asking a question, provide explanation only (no navigation)\n- If you cannot understand, provide the "sorry couldn't understand" response\n\nIMPORTANT: If a book was detected and user wants to navigate to it, you MUST include both the reply AND the navigation action with bookIsbn.\n\nRespond with JSON format: {"reply":"your response","action":{"type":"navigate","target":"/path"} (optional), "bookIsbn":"isbn" (optional for book navigation), "recommendations":[{"title":"Book Title","isbn":"isbn","reason":"why it matches"}] (optional for recommendations)}`;
+      };
+
+      const generateResponse = async () => {
+        const modelsToTry = ['gemini-flash-latest', 'gemini-pro-latest'];
+        let lastError = null;
+
+        for (const modelName of modelsToTry) {
+          try {
+            const modelConfig = createModelConfig(modelName, requestTypes.isBCLibraryQuestion);
+            const model = genAI.getGenerativeModel(modelConfig);
+            const prompt = buildPrompt(detectedBook, requestTypes);
+            
+            try {
+              const result = await model.generateContent(prompt);
+              return await result.response.text();
+            } catch (groundingError) {
+              if (requestTypes.isBCLibraryQuestion && (groundingError.message?.includes('tools') || groundingError.message?.includes('grounding') || groundingError.message?.includes('googleSearch'))) {
+                console.warn('Google Search grounding not available, falling back to standard model');
+                const fallbackConfig = createModelConfig(modelName, false);
+                const fallbackModel = genAI.getGenerativeModel(fallbackConfig);
+                const result = await fallbackModel.generateContent(prompt);
+                return await result.response.text();
+              }
+              throw groundingError;
+            }
+          } catch (modelError) {
+            lastError = modelError;
           }
         }
         
-        // If no book found yet, try explicit book request patterns
-        if (!detectedBook && /book/i.test(userPrompt)) {
-          // Extract potential book title (everything after "take me to" or "show me" and before "book")
-          // But skip if it's "book a study room" or similar
-          if (!isStudyRoomRequest) {
-            const bookMatch = userPrompt.match(/(?:take me to|show me|find|go to|open)\s+(.+?)\s+book/i)
-            if (bookMatch && bookMatch[1]) {
-              const potentialTitle = bookMatch[1].trim()
-              // Skip if the potential title is a known page phrase
-              if (!knownPagePhrases.some(phrase => potentialTitle.toLowerCase().includes(phrase))) {
-                const foundBook = findBookByTitle(potentialTitle)
-                if (foundBook) {
-                  detectedBook = foundBook
-                  bookIsbn = foundBook.isbn
-                }
-              }
-            } else {
-              // Try to find book title in the prompt (title before "book")
-              const words = userPrompt.split(/\s+/)
-              const bookIndex = words.findIndex(w => w.toLowerCase() === 'book')
-              if (bookIndex > 0) {
-                const potentialTitle = words.slice(0, bookIndex).join(' ').replace(/^(take me to|show me|find|go to|open)\s+/i, '').trim()
-                // Skip if the potential title is a known page phrase
-                if (!knownPagePhrases.some(phrase => potentialTitle.toLowerCase().includes(phrase))) {
-                  const foundBook = findBookByTitle(potentialTitle)
-                  if (foundBook) {
-                    detectedBook = foundBook
-                    bookIsbn = foundBook.isbn
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
-      
-      // If it's a navigation request and we found a book, it's definitely a book navigation
-      const isBookNavigation = isNavigationRequest && detectedBook !== null
+        throw lastError || new Error('All models failed to generate a response');
+      };
 
-      // Detect if question is specifically about BC libraries (needs web search)
-      const isBCLibraryQuestion = /bc.*library|boston college.*library|library.*hours|library.*services|library.*study|library.*printing|library.*borrowing|o'neill|bapst|burns.*library|library.*access|library.*resources/i.test(userPrompt) && 
-                                  !isNavigationRequest && 
-                                  !isRecommendationRequest
+      const rawText = await generateResponse();
 
-      // Try gemini-flash-latest first, fallback to gemini-pro
-      const modelsToTry = ['gemini-flash-latest', 'gemini-pro-latest']
-      let rawText = ''
-      let lastError = null
+      let replyText = rawText;
+      let action = null;
+      let responseBookIsbn = null;
+      let recommendations = null;
 
-      for (const modelName of modelsToTry) {
-        try {
-          // Configure model with grounding (Google Search) for BC library questions
-          const modelConfig = createModelConfig(modelName, isBCLibraryQuestion)
-          const model = genAI.getGenerativeModel(modelConfig)
-
-          // Build prompt with detected book info if available
-          let bookInfo = ''
-          if (detectedBook) {
-            bookInfo = `\n\nDETECTED BOOK: "${detectedBook.title}" by ${detectedBook.author} (ISBN: ${detectedBook.isbn})\nIf user wants this book, use bookIsbn: "${detectedBook.isbn}" and navigate to: "/book/isbn/${detectedBook.isbn}"`
-          }
-          
-          let recommendationHint = ''
-          if (isRecommendationRequest) {
-            recommendationHint = '\n\nUSER IS REQUESTING BOOK RECOMMENDATIONS. Analyze their preferences (genre, themes, rating, etc.) and provide 1-3 book recommendations with ISBNs and reasons. Include the recommendations array in your JSON response.'
-          }
-          
-          let webSearchHint = ''
-          if (isBCLibraryQuestion) {
-            webSearchHint = '\n\nIMPORTANT: This is a question about BC (Boston College) libraries. Use Google Search grounding to find the most current and accurate information from the BC Library website (library.bc.edu) and other official BC sources. Provide up-to-date information about library hours, services, policies, study spaces, and resources. Cite sources when possible.'
-          }
-          
-          const prompt = `${siteContext}${bookInfo}${recommendationHint}${webSearchHint}\n\nUser question: "${userPrompt}"\n\nAnalyze the user's request and respond appropriately:\n- If they want to navigate to a page, include navigation action with target path\n- If they want to navigate to a book, use the bookIsbn provided above and set target to "/book/isbn/{isbn}"\n- If they're asking for book recommendations, provide recommendations array with title, isbn, and reason\n- If they're asking a question about BC libraries, use web search to find current information and provide a detailed, accurate answer\n- If they're asking a question, provide explanation only (no navigation)\n- If you cannot understand, provide the "sorry couldn't understand" response\n\nIMPORTANT: If a book was detected and user wants to navigate to it, you MUST include both the reply AND the navigation action with bookIsbn.\n\nRespond with JSON format: {"reply":"your response","action":{"type":"navigate","target":"/path"} (optional), "bookIsbn":"isbn" (optional for book navigation), "recommendations":[{"title":"Book Title","isbn":"isbn","reason":"why it matches"}] (optional for recommendations)}`
-          
-          // Try to generate with grounding, fallback if not available
-          let result
-          try {
-            result = await model.generateContent(prompt)
-          } catch (groundingError) {
-            // If grounding fails (not available), try without tools
-            if (isBCLibraryQuestion && (groundingError.message?.includes('tools') || groundingError.message?.includes('grounding') || groundingError.message?.includes('googleSearch'))) {
-              console.warn('Google Search grounding not available, falling back to standard model')
-              const fallbackConfig = createModelConfig(modelName, false)
-              const fallbackModel = genAI.getGenerativeModel(fallbackConfig)
-              result = await fallbackModel.generateContent(prompt)
-            } else {
-              throw groundingError
-            }
-          }
-          
-          const response = await result.response
-          rawText = response.text()
-          
-          // Success - break out of loop
-          break
-        } catch (modelError) {
-          lastError = modelError
-          // Continue to next model
-        }
-      }
-
-      if (!rawText) {
-        throw lastError || new Error('All models failed to generate a response')
-      }
-
-      let replyText = rawText
-      let action = null
-      let responseBookIsbn = null
-      let recommendations = null
-
-      // Try to parse JSON response
       try {
-        const parsed = JSON.parse(sanitizeJSON(rawText))
-        if (parsed.reply) replyText = parsed.reply
-        if (parsed.action) action = parsed.action
-        if (parsed.bookIsbn) responseBookIsbn = parsed.bookIsbn
-        if (parsed.recommendations && Array.isArray(parsed.recommendations)) {
-          recommendations = parsed.recommendations
-        }
+        const parsed = JSON.parse(sanitizeJSON(rawText));
+        replyText = parsed.reply || replyText;
+        action = parsed.action || null;
+        responseBookIsbn = parsed.bookIsbn || null;
+        recommendations = parsed.recommendations || null;
       } catch {
-        // fall back to natural text if JSON parsing fails
+        // Fall back to natural text if JSON parsing fails
       }
 
-      // Use bookIsbn from pre-processing if available and response doesn't have one
-      const finalBookIsbn = responseBookIsbn || bookIsbn
-
-      // Send main reply first
-      appendMessage({ role: 'bot', text: replyText })
+      const finalBookIsbn = responseBookIsbn || bookIsbn;
+      appendMessage({ role: 'bot', text: replyText });
       
-      // Send recommendations as separate messages for cleaner display
-      if (recommendations && recommendations.length > 0) {
-        // Small delay to ensure messages appear in order
+      if (recommendations?.length > 0) {
         setTimeout(() => {
           recommendations.forEach((rec, idx) => {
             setTimeout(() => {
-              const recText = `${idx + 1}. ${rec.title} - ${rec.reason || 'Matches your preferences'}`
-              appendMessage({ role: 'bot', text: recText })
-            }, idx * 200) // Stagger messages by 200ms
-          })
-          
-          // Add navigation hint as final message
+              appendMessage({ role: 'bot', text: `${idx + 1}. ${rec.title} - ${rec.reason || 'Matches your preferences'}` });
+            }, idx * 200);
+          });
           setTimeout(() => {
-            appendMessage({ role: 'bot', text: 'Say "take me to [book title]" to see details.' })
-          }, recommendations.length * 200)
-        }, 300)
-        
+            appendMessage({ role: 'bot', text: 'Say "take me to [book title]" to see details.' });
+          }, recommendations.length * 200);
+        }, 300);
       }
       
-      // Navigate based on request type - prioritize study room, known pages, then book navigation
-      if (isStudyRoomRequest) {
-        // Study room booking - navigate to resources page
-        navigateWithDelay(handleNavigation, '/resources')
-      } else if (isKnownPageNavigation && isNavigationRequest) {
-        // Known page navigation - handle directly
-        const pageRoutes = {
-          'my library': '/my-library',
-          'my-library': '/my-library',
-          'home': '/',
-          'advanced search': '/advanced-search',
-          'book reviews': '/book-reviews',
-          'resources': '/resources',
-          'sign in': '/sign-in',
-          'sign-in': '/sign-in'
+      const handleNavigationLogic = () => {
+        if (requestTypes.isStudyRoomRequest) {
+          return navigateWithDelay(handleNavigation, '/resources');
         }
         
-        for (const [key, path] of Object.entries(pageRoutes)) {
-          if (lowerPrompt.includes(key)) {
-            navigateWithDelay(handleNavigation, path)
-            break
+        if (requestTypes.isKnownPageNavigation && requestTypes.isNavigationRequest) {
+          const pageRoutes = {
+            'my library': '/my-library', 'my-library': '/my-library',
+            'home': '/', 'advanced search': '/advanced-search',
+            'book reviews': '/book-reviews', 'resources': '/resources',
+            'sign in': '/sign-in', 'sign-in': '/sign-in'
+          };
+          for (const [key, path] of Object.entries(pageRoutes)) {
+            if (requestTypes.lowerPrompt.includes(key)) {
+              return navigateWithDelay(handleNavigation, path);
+            }
           }
         }
-      } else if (finalBookIsbn && (isBookNavigation || (isNavigationRequest && !isQuestionRequest))) {
-        // Book navigation - always navigate if book was detected and it's a navigation request
-        navigateWithDelay(handleNavigation, `/book/isbn/${finalBookIsbn}`)
-      } else if (isNavigationRequest && !isQuestionRequest) {
-        // Regular page navigation
-        if (action?.target) {
-          navigateWithDelay(handleNavigation, action.target)
-        } else {
-          // Try to infer navigation from text
-          interpretNavigation(replyText, action, null)
+        
+        if (finalBookIsbn && (isBookNavigation || (requestTypes.isNavigationRequest && !requestTypes.isQuestionRequest))) {
+          return navigateWithDelay(handleNavigation, `/book/isbn/${finalBookIsbn}`);
         }
-      }
+        
+        if (requestTypes.isNavigationRequest && !requestTypes.isQuestionRequest) {
+          if (action?.target) {
+            return navigateWithDelay(handleNavigation, action.target);
+          }
+          interpretNavigation(replyText, action, null);
+        }
+      };
+      
+      handleNavigationLogic();
     } catch (apiError) {
-      console.error('AI Assistant error:', apiError)
-      const errorMessage = apiError.message || 'Unable to reach the AI assistant right now. Please try again.'
-      setError(errorMessage)
+      console.error('AI Assistant error:', apiError);
+      const errorMessage = apiError.message || 'Unable to reach the AI assistant right now. Please try again.';
+      setError(errorMessage);
       appendMessage({
         role: 'bot',
         text: `Sorry, I encountered an error: ${errorMessage}. Please check your API key and try again.`
-      })
+      });
     } finally {
-      setIsLoading(false)
+      setIsLoading(false);
     }
-  }, [siteContext, appendMessage, interpretNavigation, findBookByTitle])
+  }, [siteContext, appendMessage, interpretNavigation, detectRequestType, detectBookInPrompt, handleNavigation]);
 
   const handleSend = async () => {
     const trimmed = inputValue.trim()

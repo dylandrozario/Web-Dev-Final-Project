@@ -1,52 +1,46 @@
-import React, { useMemo, useState, useEffect } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import useRecommendations from '../../hooks/useRecommendations';
 import BookCard from '../../components/advanced-search/BookCard/BookCard';
 import { useNavigate } from 'react-router-dom';
 import './RecommendationsPage.css';
 
+const ITEMS_PER_PAGE = 10;
+
+const sortRecommendations = (recommendations) => {
+  if (!recommendations?.length) return [];
+  return [...recommendations].sort((a, b) => {
+    const scoreDiff = (b.score || 0) - (a.score || 0);
+    if (scoreDiff !== 0) return scoreDiff;
+    const genreA = (a.genre || 'Other').toLowerCase();
+    const genreB = (b.genre || 'Other').toLowerCase();
+    return genreA.localeCompare(genreB);
+  });
+};
+
 export default function RecommendationsPage() {
   const recommendations = useRecommendations();
   const navigate = useNavigate();
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 10;
 
-  // Sort all recommendations by score (highest first), then by genre
-  const sortedRecommendations = useMemo(() => {
-    if (!recommendations || recommendations.length === 0) return [];
-    
-    return [...recommendations].sort((a, b) => {
-      // First sort by score (highest first)
-      const scoreDiff = (b.score || 0) - (a.score || 0);
-      if (scoreDiff !== 0) return scoreDiff;
-      
-      // Then sort by genre for grouping
-      const genreA = (a.genre || 'Other').toLowerCase();
-      const genreB = (b.genre || 'Other').toLowerCase();
-      return genreA.localeCompare(genreB);
-    });
-  }, [recommendations]);
-
-  // Pagination
-  const totalPages = Math.ceil(sortedRecommendations.length / itemsPerPage);
+  const sortedRecommendations = useMemo(() => sortRecommendations(recommendations), [recommendations]);
+  const totalPages = Math.ceil(sortedRecommendations.length / ITEMS_PER_PAGE);
+  
   const paginatedBooks = useMemo(() => {
-    const startIndex = (currentPage - 1) * itemsPerPage;
-    return sortedRecommendations.slice(startIndex, startIndex + itemsPerPage);
-  }, [sortedRecommendations, currentPage, itemsPerPage]);
+    const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+    return sortedRecommendations.slice(startIndex, startIndex + ITEMS_PER_PAGE);
+  }, [sortedRecommendations, currentPage]);
 
-  // Reset to page 1 if current page is out of bounds
   useEffect(() => {
-    if (currentPage > totalPages && totalPages > 0) {
-      setCurrentPage(1);
-    }
+    if (currentPage > totalPages && totalPages > 0) setCurrentPage(1);
   }, [totalPages, currentPage]);
 
-  if (!recommendations || recommendations.length === 0) {
+  if (!recommendations?.length) {
     return (
       <div className="page-shell gradient-bg-vertical">
         <div className="page-container-wide">
-          <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--white)' }}>
+          <div className="recommendations-empty">
             <p>No recommendations available at this time.</p>
-            <p style={{ marginTop: '1rem', opacity: 0.7 }}>
+            <p className="recommendations-empty-subtitle">
               Start saving, favoriting, or rating books to get personalized recommendations!
             </p>
           </div>
@@ -55,7 +49,7 @@ export default function RecommendationsPage() {
     );
   }
 
-  const showPagination = sortedRecommendations.length > itemsPerPage;
+  const showPagination = sortedRecommendations.length > ITEMS_PER_PAGE;
 
   return (
     <div className="page-shell gradient-bg-vertical">

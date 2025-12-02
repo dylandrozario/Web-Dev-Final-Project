@@ -4,14 +4,12 @@ import APP_CONFIG from '../../config/constants'
 import BookFilterModal from '../../components/filters/BookFilterModal'
 import TopFilterModal from '../../components/filters/TopFilterModal'
 import TimeRangeModal from '../../components/filters/TimeRangeModal'
-import { useBooks } from '../../context/BooksContext'
-import { useAuth } from '../../context/AuthContext'
-import './BookReviews.css'
+import { useBooks } from '../../context/BooksContext';
+import './BookReviews.css';
 
 function BookReviews() {
-  const navigate = useNavigate()
-  const { books: booksData } = useBooks()
-  const { isAuthenticated, user } = useAuth()
+  const navigate = useNavigate();
+  const { books: booksData } = useBooks();
   const [timeFilter, setTimeFilter] = useState('all-time')
   const [viewMode, setViewMode] = useState('list')
   const [currentPage, setCurrentPage] = useState(1)
@@ -25,16 +23,14 @@ function BookReviews() {
   const [selectedTimeRange, setSelectedTimeRange] = useState('All-time')
   const itemsPerPage = APP_CONFIG.ITEMS_PER_PAGE
 
-  // Generate mock review data for books
-  // Using seed-based approach for stable values across renders
   const booksWithReviews = useMemo(() => {
     return booksData.map((book, index) => {
-      const baseRating = book.rating || 4.0
-      const seed = book.isbn.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0) + index
-      const ratingCount = APP_CONFIG.RATING_COUNT_MIN + ((seed * 11) % (APP_CONFIG.RATING_COUNT_MAX - APP_CONFIG.RATING_COUNT_MIN + 1))
-      const reviewCount = Math.floor(ratingCount * 0.01) + APP_CONFIG.REVIEW_COUNT_MIN + ((seed * 7) % (APP_CONFIG.REVIEW_COUNT_MAX - APP_CONFIG.REVIEW_COUNT_MIN + 1))
-      const calculatedRating = baseRating + ((seed % 10 - 5) * 0.05)
-      const formattedRating = Math.max(0, Math.min(5.0, calculatedRating)).toFixed(2)
+      const baseRating = book.rating || 4.0;
+      const seed = book.isbn.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0) + index;
+      const ratingCount = APP_CONFIG.RATING_COUNT_MIN + ((seed * 11) % (APP_CONFIG.RATING_COUNT_MAX - APP_CONFIG.RATING_COUNT_MIN + 1));
+      const reviewCount = Math.floor(ratingCount * 0.01) + APP_CONFIG.REVIEW_COUNT_MIN + ((seed * 7) % (APP_CONFIG.REVIEW_COUNT_MAX - APP_CONFIG.REVIEW_COUNT_MIN + 1));
+      const calculatedRating = baseRating + ((seed % 10 - 5) * 0.05);
+      const formattedRating = Math.max(0, Math.min(5.0, calculatedRating)).toFixed(2);
       
       return {
         ...book,
@@ -43,221 +39,160 @@ function BookReviews() {
         ratingCount,
         reviewCount,
         formattedRatingCount: ratingCount >= 1000 ? `${(ratingCount / 1000).toFixed(0)}k` : ratingCount.toString()
-      }
-    })
-  }, [booksData])
+      };
+    });
+  }, [booksData]);
 
-  // Memoize current year to avoid recalculation
-  const currentYear = useMemo(() => new Date().getFullYear(), [])
-
-  // Filter books by time period
-  const filteredByTime = useMemo(() => {
-    if (timeFilter === 'all-time') return booksWithReviews
+  const parseTimeFilter = useCallback((filter) => {
+    if (filter === 'all-time') return null;
     
-    let startYear, endYear
-    
-    // Handle custom range format: "2020-2024"
-    if (timeFilter.includes('-') && !timeFilter.includes('s')) {
-      const parts = timeFilter.split('-')
-      if (parts.length === 2) {
-        startYear = parseInt(parts[0])
-        endYear = parseInt(parts[1])
-        if (isNaN(startYear) || isNaN(endYear)) {
-          return booksWithReviews
-        }
-      } else {
-        return booksWithReviews
-      }
-    } else if (timeFilter.includes('s')) {
-      // Decade filter (e.g., "2020s")
-      const decade = parseInt(timeFilter.replace('s', ''))
-      if (isNaN(decade)) return booksWithReviews
-      startYear = decade
-      endYear = decade + 9
+    if (filter.includes('-') && !filter.includes('s')) {
+      const [start, end] = filter.split('-').map(Number);
+      if (!isNaN(start) && !isNaN(end)) return { startYear: start, endYear: end };
+    } else if (filter.includes('s')) {
+      const decade = parseInt(filter.replace('s', ''));
+      if (!isNaN(decade)) return { startYear: decade, endYear: decade + 9 };
     } else {
-      // Single year filter
-      const year = parseInt(timeFilter)
-      if (isNaN(year)) return booksWithReviews
-      startYear = year
-      endYear = year
+      const year = parseInt(filter);
+      if (!isNaN(year)) return { startYear: year, endYear: year };
     }
     
-    return booksWithReviews.filter(book => {
-      if (!book.releaseDate) return false
-      const bookYear = new Date(book.releaseDate).getFullYear()
-      if (isNaN(bookYear)) return false
-      return bookYear >= startYear && bookYear <= endYear
-    })
-  }, [booksWithReviews, timeFilter, currentYear])
+    return null;
+  }, []);
 
-  // Filter by genre and search
+  const filteredByTime = useMemo(() => {
+    const range = parseTimeFilter(timeFilter);
+    if (!range) return booksWithReviews;
+    
+    return booksWithReviews.filter(book => {
+      if (!book.releaseDate) return false;
+      const bookYear = new Date(book.releaseDate).getFullYear();
+      return !isNaN(bookYear) && bookYear >= range.startYear && bookYear <= range.endYear;
+    });
+  }, [booksWithReviews, timeFilter, parseTimeFilter]);
+
   const filteredBooks = useMemo(() => {
-    let filtered = filteredByTime
+    let filtered = filteredByTime;
     
     if (genreFilter) {
-      filtered = filtered.filter(book => 
-        book.genre?.toLowerCase().includes(genreFilter.toLowerCase())
-      )
+      const lowerGenre = genreFilter.toLowerCase();
+      filtered = filtered.filter(book => book.genre?.toLowerCase().includes(lowerGenre));
     }
     
     if (searchFilter) {
-      const lowerSearch = searchFilter.toLowerCase()
+      const lowerSearch = searchFilter.toLowerCase();
       filtered = filtered.filter(book =>
         book.title.toLowerCase().includes(lowerSearch) ||
         book.author.toLowerCase().includes(lowerSearch) ||
         book.genre?.toLowerCase().includes(lowerSearch)
-      )
+      );
     }
     
-    return filtered
-  }, [filteredByTime, genreFilter, searchFilter])
+    return filtered;
+  }, [filteredByTime, genreFilter, searchFilter]);
 
-  // Sort books based on selected top option
-  const sortedBooks = useMemo(() => {
-    let sorted = [...filteredBooks]
+  const sortBooks = useCallback((books, option) => {
+    const sorted = [...books];
     
-    switch (selectedTopOption) {
+    switch (option) {
       case 'Popular':
-        // Sort by number of ratings (most ratings first)
-        sorted.sort((a, b) => (b.ratingCount || 0) - (a.ratingCount || 0))
-        break
+        return sorted.sort((a, b) => (b.ratingCount || 0) - (a.ratingCount || 0));
       
-      case 'Esoteric':
-        // Sort by rating first, then by fewer ratings (high rating but less known)
-        // Calculate esoteric score: rating * (1 / log(ratingCount + 1))
-        sorted.sort((a, b) => {
-          const aRating = a.rating || 0
-          const bRating = b.rating || 0
-          const aCount = a.ratingCount || 1
-          const bCount = b.ratingCount || 1
-          
-          // Esoteric score: higher rating with fewer ratings gets higher score
-          const aScore = aRating * (1 / Math.log(aCount + 1))
-          const bScore = bRating * (1 / Math.log(bCount + 1))
-          
-          return bScore - aScore
-        })
-        break
+      case 'Esoteric': {
+        const getEsotericScore = (book) => (book.rating || 0) * (1 / Math.log((book.ratingCount || 1) + 1));
+        return sorted.sort((a, b) => getEsotericScore(b) - getEsotericScore(a));
+      }
       
-      case 'Diverse':
-        // Limit to one book per author (highest rated), then sort by rating
-        const authorMap = new Map()
-        filteredBooks.forEach(book => {
-          const author = (book.author?.toLowerCase() || 'unknown').trim()
-          if (!authorMap.has(author)) {
-            // First occurrence - add it
-            authorMap.set(author, book)
-          } else {
-            // Already have a book by this author - keep the one with higher rating
-            const existingBook = authorMap.get(author)
-            if ((book.rating || 0) > (existingBook.rating || 0)) {
-              authorMap.set(author, book)
-            }
+      case 'Diverse': {
+        const authorMap = new Map();
+        books.forEach(book => {
+          const author = (book.author?.toLowerCase() || 'unknown').trim();
+          const existing = authorMap.get(author);
+          if (!existing || (book.rating || 0) > (existing.rating || 0)) {
+            authorMap.set(author, book);
           }
-        })
-        sorted = Array.from(authorMap.values())
-        // Sort by rating after limiting to one per author
-        sorted.sort((a, b) => (b.rating || 0) - (a.rating || 0))
-        break
+        });
+        return Array.from(authorMap.values()).sort((a, b) => (b.rating || 0) - (a.rating || 0));
+      }
       
       case 'Top':
       default:
-        // Sort by rating (highest first)
-        sorted.sort((a, b) => (b.rating || 0) - (a.rating || 0))
-        break
+        return sorted.sort((a, b) => (b.rating || 0) - (a.rating || 0));
     }
-    
-    return sorted
-  }, [filteredBooks, selectedTopOption])
+  }, []);
 
-  // Pagination
-  const totalPages = Math.ceil(sortedBooks.length / itemsPerPage)
+  const sortedBooks = useMemo(() => {
+    return sortBooks(filteredBooks, selectedTopOption);
+  }, [filteredBooks, selectedTopOption, sortBooks]);
+
+  const totalPages = Math.ceil(sortedBooks.length / itemsPerPage);
   const paginatedBooks = useMemo(() => {
-    const startIndex = (currentPage - 1) * itemsPerPage
-    return sortedBooks.slice(startIndex, startIndex + itemsPerPage)
-  }, [sortedBooks, currentPage])
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    return sortedBooks.slice(startIndex, startIndex + itemsPerPage);
+  }, [sortedBooks, currentPage, itemsPerPage]);
+
+  const resetPage = useCallback(() => setCurrentPage(1), []);
+
+  const formatTimeRangeDisplay = useCallback((filter) => {
+    if (filter === 'all-time') return 'All-time';
+    if (filter.includes('s')) return filter;
+    if (filter.includes('-')) return filter;
+    
+    const year = parseInt(filter);
+    const currentYear = new Date().getFullYear();
+    if (year === currentYear) return 'This Year';
+    if (year === currentYear - 1) return 'Last Year';
+    return filter;
+  }, []);
 
   const handleTimeFilter = useCallback((filter) => {
-    setTimeFilter(filter)
-    setCurrentPage(1)
-    // Update selectedTimeRange to match the filter for display consistency
-    if (filter === 'all-time') {
-      setSelectedTimeRange('All-time')
-    } else if (filter.includes('s')) {
-      // Decade format - keep as is for display
-      setSelectedTimeRange(filter)
-    } else if (filter.includes('-')) {
-      // Custom range - keep as is
-      setSelectedTimeRange(filter)
-    } else {
-      // Single year - format for display
-      const year = parseInt(filter)
-      const currentYear = new Date().getFullYear()
-      if (year === currentYear) {
-        setSelectedTimeRange('This Year')
-      } else if (year === currentYear - 1) {
-        setSelectedTimeRange('Last Year')
-      } else {
-        setSelectedTimeRange(filter)
-      }
-    }
-  }, [])
+    setTimeFilter(filter);
+    resetPage();
+    setSelectedTimeRange(formatTimeRangeDisplay(filter));
+  }, [formatTimeRangeDisplay, resetPage]);
 
   const handleGenreFilter = useCallback((genre) => {
-    setGenreFilter(genre)
-    setCurrentPage(1)
-  }, [])
+    setGenreFilter(genre);
+    resetPage();
+  }, [resetPage]);
 
   const handleSearchChange = useCallback((e) => {
-    setSearchFilter(e.target.value)
-    setCurrentPage(1)
-  }, [])
+    setSearchFilter(e.target.value);
+    resetPage();
+  }, [resetPage]);
 
   const handleBookFormatSelect = useCallback((format) => {
-    setSelectedBookFormat(format)
-    setCurrentPage(1)
-  }, [])
+    setSelectedBookFormat(format);
+    resetPage();
+  }, [resetPage]);
 
   const handleTopOptionSelect = useCallback((option) => {
-    setSelectedTopOption(option)
-    setCurrentPage(1)
-  }, [])
+    setSelectedTopOption(option);
+    resetPage();
+  }, [resetPage]);
 
   const handleTimeRangeSelect = useCallback((range) => {
-    setCurrentPage(1)
-    // Update timeFilter based on selected range
-    if (range === 'All-time') {
-      setTimeFilter('all-time')
-      setSelectedTimeRange('All-time')
-    } else if (range === 'This Year') {
-      const currentYear = new Date().getFullYear().toString()
-      setTimeFilter(currentYear)
-      setSelectedTimeRange('This Year')
-    } else if (range === 'Last Year') {
-      const lastYear = (new Date().getFullYear() - 1).toString()
-      setTimeFilter(lastYear)
-      setSelectedTimeRange('Last Year')
+    resetPage();
+    const currentYear = new Date().getFullYear();
+    
+    const rangeMap = {
+      'All-time': { filter: 'all-time', display: 'All-time' },
+      'This Year': { filter: currentYear.toString(), display: 'This Year' },
+      'Last Year': { filter: (currentYear - 1).toString(), display: 'Last Year' }
+    };
+    
+    if (rangeMap[range]) {
+      setTimeFilter(rangeMap[range].filter);
+      setSelectedTimeRange(rangeMap[range].display);
     } else if (range.includes('-')) {
-      // Custom range format: "2020-2024" - keep the full range format
-      setTimeFilter(range)
-      // Format for display: "2020-2024"
-      setSelectedTimeRange(range)
+      setTimeFilter(range);
+      setSelectedTimeRange(range);
     } else {
-      // Fallback to all-time if unknown format
-      setTimeFilter('all-time')
-      setSelectedTimeRange('All-time')
+      setTimeFilter('all-time');
+      setSelectedTimeRange('All-time');
     }
-  }, [])
+  }, [resetPage]);
 
-  const getGenres = useMemo(() => {
-    const genres = new Set()
-    booksWithReviews.forEach(book => {
-      if (book.genre) {
-        genres.add(book.genre)
-      }
-    })
-    return Array.from(genres).sort()
-  }, [booksWithReviews])
 
   return (
     <div className="book-reviews-page">
@@ -270,7 +205,6 @@ function BookReviews() {
         <div className="reviews-layout">
           {/* Left Column - Main Chart */}
           <div className="reviews-main">
-            {/* Time Filter Buttons */}
             <div className="time-filters">
               {['all-time', '2025', '2024', '2023', '2022', '2020s', '2010s', '2000s', '1990s', '1980s', '1970s', '1960s'].map(filter => (
                 <button
@@ -321,19 +255,27 @@ function BookReviews() {
                 >
                   Prev
                 </button>
-                {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-                  let pageNum
+                {(() => {
+                const getPageNumbers = () => {
                   if (totalPages <= 5) {
-                    pageNum = i + 1
-                  } else if (currentPage <= 3) {
-                    pageNum = i + 1
-                  } else if (currentPage >= totalPages - 2) {
-                    pageNum = totalPages - 4 + i
-                  } else {
-                    pageNum = currentPage - 2 + i
+                    return Array.from({ length: totalPages }, (_, i) => i + 1);
                   }
+                  if (currentPage <= 3) {
+                    return [1, 2, 3, 4, 5];
+                  }
+                  if (currentPage >= totalPages - 2) {
+                    return Array.from({ length: 5 }, (_, i) => totalPages - 4 + i);
+                  }
+                  return Array.from({ length: 5 }, (_, i) => currentPage - 2 + i);
+                };
+
+                const pages = getPageNumbers();
+                return pages.map((pageNum) => {
+                  const isVisible = pageNum === 1 || pageNum === totalPages || 
+                                   (pageNum >= currentPage - 1 && pageNum <= currentPage + 1);
+                  const isEllipsis = pageNum === currentPage - 2 || pageNum === currentPage + 2;
                   
-                  if (pageNum === 1 || pageNum === totalPages || (pageNum >= currentPage - 1 && pageNum <= currentPage + 1)) {
+                  if (isVisible) {
                     return (
                       <button
                         key={pageNum}
@@ -342,12 +284,14 @@ function BookReviews() {
                       >
                         {pageNum}
                       </button>
-                    )
-                  } else if (pageNum === currentPage - 2 || pageNum === currentPage + 2) {
-                    return <span key={pageNum} className="pagination-ellipsis">...</span>
+                    );
                   }
-                  return null
-                })}
+                  if (isEllipsis) {
+                    return <span key={pageNum} className="pagination-ellipsis">...</span>;
+                  }
+                  return null;
+                });
+              })()}
                 <button 
                   className="pagination-btn"
                   onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
@@ -358,10 +302,15 @@ function BookReviews() {
               </div>
             </div>
 
-            {/* Book Chart */}
             <div className={`book-chart ${viewMode === 'grid' ? 'grid-view' : 'list-view'}`}>
               {paginatedBooks.map((book, index) => {
-                const rank = (currentPage - 1) * itemsPerPage + index + 1
+                const rank = (currentPage - 1) * itemsPerPage + index + 1;
+                const formattedDate = new Date(book.releaseDate).toLocaleDateString('en-US', { 
+                  day: 'numeric', 
+                  month: 'long', 
+                  year: 'numeric' 
+                });
+                
                 return (
                   <div 
                     key={book.isbn || book.id} 
@@ -381,18 +330,12 @@ function BookReviews() {
                     <div className="chart-info">
                       <div className="chart-title">{book.title}</div>
                       <div className="chart-artist">{book.author}</div>
-                      <div className="chart-date">
-                        {new Date(book.releaseDate).toLocaleDateString('en-US', { 
-                          day: 'numeric', 
-                          month: 'long', 
-                          year: 'numeric' 
-                        })}
-                      </div>
-                      <div className="chart-genres">
-                        {book.genre && (
+                      <div className="chart-date">{formattedDate}</div>
+                      {book.genre && (
+                        <div className="chart-genres">
                           <span className="genre-tag">{book.genre}</span>
-                        )}
-                      </div>
+                        </div>
+                      )}
                     </div>
                     <div className="chart-rating">
                       <div className="rating-star">
@@ -405,26 +348,25 @@ function BookReviews() {
                       <span className="review-count">{book.reviewCount}</span>
                     </div>
                   </div>
-                )
+                );
               })}
             </div>
           </div>
 
           {/* Right Column - Filters and Sidebar */}
           <div className="reviews-sidebar">
-            {/* Add Filters Section */}
-            <div className="sidebar-section" style={{ position: 'relative' }}>
+            <div className="sidebar-section">
               <h3 className="sidebar-title">Add filters</h3>
               <p className="sidebar-description">
                 There are unlimited ways to filter charts: You can make a personalized chart based on any combination of genres, descriptors, countries, languages and more.
               </p>
-              <div className="filter-dropdowns" style={{ position: 'relative' }}>
-                <div className="filter-select-wrapper" style={{ position: 'relative' }}>
+              <div className="filter-dropdowns">
+                <div className="filter-select-wrapper">
                   <button 
                     className="filter-select filter-select-btn"
                     onClick={(e) => {
-                      e.preventDefault()
-                      setIsTopModalOpen(true)
+                      e.preventDefault();
+                      setIsTopModalOpen(true);
                     }}
                   >
                     {selectedTopOption}
@@ -437,23 +379,30 @@ function BookReviews() {
                     />
                   )}
                 </div>
-                <div className="filter-select-wrapper" style={{ position: 'relative' }}>
+                <div className="filter-select-wrapper">
                   <button 
                     className="filter-select filter-select-btn"
                     onClick={(e) => {
-                      e.preventDefault()
-                      setIsFilterModalOpen(true)
+                      e.preventDefault();
+                      setIsFilterModalOpen(true);
                     }}
                   >
                     {selectedBookFormat || 'Books'}
                   </button>
+                  {isFilterModalOpen && (
+                    <BookFilterModal
+                      isOpen={isFilterModalOpen}
+                      onClose={() => setIsFilterModalOpen(false)}
+                      onSelect={handleBookFormatSelect}
+                    />
+                  )}
                 </div>
-                <div className="filter-select-wrapper" style={{ position: 'relative' }}>
+                <div className="filter-select-wrapper">
                   <button 
                     className="filter-select filter-select-btn"
                     onClick={(e) => {
-                      e.preventDefault()
-                      setIsTimeRangeModalOpen(true)
+                      e.preventDefault();
+                      setIsTimeRangeModalOpen(true);
                     }}
                   >
                     {selectedTimeRange.includes('-') && !selectedTimeRange.includes('s')
@@ -469,13 +418,6 @@ function BookReviews() {
                     />
                   )}
                 </div>
-                {isFilterModalOpen && (
-                  <BookFilterModal
-                    isOpen={isFilterModalOpen}
-                    onClose={() => setIsFilterModalOpen(false)}
-                    onSelect={handleBookFormatSelect}
-                  />
-                )}
               </div>
               <input
                 type="text"

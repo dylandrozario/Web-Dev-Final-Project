@@ -10,355 +10,174 @@ const STORAGE_KEY = 'libraryCatalog_userLibrary'
 const PROBLEMATIC_ISBNS = ['OLOL265415W']; // Only "At Bertram's Hotel" remains problematic
 const PROBLEMATIC_TITLES = ['At Bertram\'s Hotel'];
 
-// Helper function to check if a book has valid status
 function hasValidStatus(book) {
-  if (!book) return false
-  
-  const isSaved = book.saved === true
-  const isFavorite = book.favorite === true
-  const isRated = book.rated === true && book.rating !== undefined && book.rating !== null && book.rating > 0
-  const isReviewed = book.reviewed === true && book.review && typeof book.review === 'string' && book.review.trim().length > 0
-  
-  return isSaved || isFavorite || isRated || isReviewed
+  if (!book) return false;
+  return book.saved === true ||
+         book.favorite === true ||
+         (book.rated === true && book.rating > 0) ||
+         (book.reviewed === true && book.review?.trim());
 }
 
-// Helper function to normalize book state (fix invalid rated/reviewed flags)
 function normalizeBookState(book) {
-  const normalized = { ...book }
-  
-  // If rated is true but rating is invalid, set rated to false
-  if (normalized.rated === true && (normalized.rating === undefined || normalized.rating === null || normalized.rating <= 0)) {
-    normalized.rated = false
-    normalized.rating = null
-    normalized.ratingLabel = '—'
+  const normalized = { ...book };
+  if (normalized.rated === true && (!normalized.rating || normalized.rating <= 0)) {
+    normalized.rated = false;
+    normalized.rating = null;
+    normalized.ratingLabel = '—';
   }
-  
-  // If reviewed is true but review is empty, set reviewed to false
-  if (normalized.reviewed === true && (!normalized.review || typeof normalized.review !== 'string' || normalized.review.trim().length === 0)) {
-    normalized.reviewed = false
-    normalized.review = undefined
+  if (normalized.reviewed === true && !normalized.review?.trim()) {
+    normalized.reviewed = false;
+    normalized.review = undefined;
   }
-  
-  return normalized
+  return normalized;
 }
 
-// Helper function to check if a book is problematic
 function isProblematicBook(book) {
-  if (!book) return false
+  if (!book) return false;
   return PROBLEMATIC_ISBNS.includes(book.isbn) || 
-         (book.title && PROBLEMATIC_TITLES.some(title => book.title.includes(title)))
+         PROBLEMATIC_TITLES.some(title => book.title?.includes(title));
+}
+
+// Clean library: remove problematic books and invalid states
+function cleanLibrary(library) {
+  const cleaned = {};
+  Object.values(library || {}).forEach(book => {
+    if (!book || isProblematicBook(book)) return;
+    const normalized = normalizeBookState(book);
+    if (hasValidStatus(normalized)) {
+      cleaned[normalized.isbn] = normalized;
+    }
+  });
+  return cleaned;
+}
+
+function getStorageKey(user) {
+  return `${STORAGE_KEY}_${user.uid || user.email}`;
 }
 
 export function UserLibraryProvider({ children }) {
-  const { user, isAuthenticated } = useAuth()
-  const [library, setLibrary] = useState({})
+  const { user, isAuthenticated } = useAuth();
+  const [library, setLibrary] = useState({});
 
   // Load library from localStorage on mount and when user changes
   useEffect(() => {
     if (!isAuthenticated || !user) {
-      setLibrary({})
-      return
+      setLibrary({});
+      return;
     }
-
-      try {
-      const stored = localStorage.getItem(`${STORAGE_KEY}_${user.uid || user.email}`)
-      if (stored && stored.trim() !== '') {
-        const parsedLibrary = JSON.parse(stored)
-        
-        // Clean library: remove books that don't have valid saved/favorite/rated/reviewed status
-        const cleanedLibrary = {}
-        let hasChanges = false
-        
-        Object.keys(parsedLibrary).forEach(isbn => {
-          const book = parsedLibrary[isbn]
-          if (!book) return
-          
-          // Remove problematic books
-          if (isProblematicBook(book)) {
-            hasChanges = true
-            return
-          }
-          
-          // Normalize invalid states
-          const normalizedBook = normalizeBookState(book)
-          
-          // Only keep books with valid status
-          if (hasValidStatus(normalizedBook)) {
-            cleanedLibrary[isbn] = normalizedBook
-            if (JSON.stringify(normalizedBook) !== JSON.stringify(book)) {
-              hasChanges = true
-            }
-          } else {
-            hasChanges = true
-          }
-        })
-        
-        // Always save cleaned library if there were changes, or if counts differ
-        if (hasChanges || Object.keys(cleanedLibrary).length !== Object.keys(parsedLibrary).length) {
-          // Save cleaned library back to localStorage
-          localStorage.setItem(`${STORAGE_KEY}_${user.uid || user.email}`, JSON.stringify(cleanedLibrary))
-          setLibrary(cleanedLibrary)
-        } else {
-          setLibrary(parsedLibrary)
-        }
-      }
-    } catch (error) {
-      console.error('Failed to load user library:', error)
-      setLibrary({})
-    }
-  }, [user, isAuthenticated])
-
-  // Clean up invalid books from library state immediately (not just on save)
-  // This ensures the library state always reflects only valid books
-  useEffect(() => {
-    if (!isAuthenticated || !user) return
-    if (!library || Object.keys(library).length === 0) return
 
     try {
-      // Clean library state: remove books that don't have valid status
-      const cleanedLibrary = {}
-      let hasInvalidBooks = false
-      
-      Object.keys(library).forEach(isbn => {
-        const book = library[isbn]
-        if (!book) return
-        
-        // Remove problematic books
-        if (isProblematicBook(book)) {
-          hasInvalidBooks = true
-          return
-        }
-        
-        // Normalize invalid states
-        const normalizedBook = normalizeBookState(book)
-        
-        // Only keep books with valid status
-        if (hasValidStatus(normalizedBook)) {
-          cleanedLibrary[isbn] = normalizedBook
-        } else {
-          hasInvalidBooks = true
-        }
-      })
-      
-      // If there were invalid books or the library structure changed, update the library state immediately
-      const libraryKeysChanged = Object.keys(cleanedLibrary).length !== Object.keys(library).length
-      const libraryKeysMatch = Object.keys(cleanedLibrary).every(isbn => library[isbn])
-      
-      if (hasInvalidBooks || libraryKeysChanged || !libraryKeysMatch) {
-        // Only update if there are actual changes to avoid infinite loops
-        if (JSON.stringify(Object.keys(cleanedLibrary).sort()) !== JSON.stringify(Object.keys(library).sort())) {
-          setLibrary(cleanedLibrary)
-        }
+      const stored = localStorage.getItem(getStorageKey(user));
+      if (!stored?.trim()) {
+        setLibrary({});
+        return;
       }
-    } catch (error) {
-      console.error('[UserLibrary] Failed to clean library state:', error)
-    }
-  }, [library, user, isAuthenticated])
 
-  // Save library to localStorage whenever it changes
-  // Clean up invalid books before saving
+      const parsedLibrary = JSON.parse(stored);
+      const cleanedLibrary = cleanLibrary(parsedLibrary);
+      
+      if (Object.keys(cleanedLibrary).length !== Object.keys(parsedLibrary).length) {
+        localStorage.setItem(getStorageKey(user), JSON.stringify(cleanedLibrary));
+      }
+      setLibrary(cleanedLibrary);
+    } catch (error) {
+      console.error('Failed to load user library:', error);
+      setLibrary({});
+    }
+  }, [user, isAuthenticated]);
+
+  // Clean and save library to localStorage whenever it changes
   useEffect(() => {
-    if (!isAuthenticated || !user) return
+    if (!isAuthenticated || !user || !library || Object.keys(library).length === 0) return;
 
     try {
-      // Clean library before saving to ensure no invalid books are persisted
-      const cleanedLibrary = {}
+      const cleanedLibrary = cleanLibrary(library);
+      const cleanedKeys = Object.keys(cleanedLibrary).sort();
+      const currentKeys = Object.keys(library).sort();
       
-      Object.keys(library).forEach(isbn => {
-        const book = library[isbn]
-        if (!book) return
-        
-        // Remove problematic books
-        if (isProblematicBook(book)) {
-          return
-        }
-        
-        // Normalize invalid states
-        const normalizedBook = normalizeBookState(book)
-        
-        // Only keep books with valid status
-        if (hasValidStatus(normalizedBook)) {
-          cleanedLibrary[isbn] = normalizedBook
-        }
-      })
+      // Only update state if keys changed (avoid infinite loops)
+      if (JSON.stringify(cleanedKeys) !== JSON.stringify(currentKeys)) {
+        setLibrary(cleanedLibrary);
+      }
       
-      // Always save the cleaned library (even if empty)
-      localStorage.setItem(`${STORAGE_KEY}_${user.uid || user.email}`, JSON.stringify(cleanedLibrary))
+      // Always save cleaned library to localStorage
+      localStorage.setItem(getStorageKey(user), JSON.stringify(cleanedLibrary));
     } catch (error) {
-      console.error('[UserLibrary] Failed to save user library:', error)
+      console.error('[UserLibrary] Failed to save user library:', error);
     }
-  }, [library, user, isAuthenticated])
+  }, [library, user, isAuthenticated]);
+
+  const updateBook = useCallback((book, updates) => {
+    if (!isAuthenticated) return false;
+    setLibrary(prev => ({
+      ...prev,
+      [book.isbn]: {
+        ...(prev[book.isbn] || {}),
+        isbn: book.isbn,
+        title: book.title,
+        author: book.author,
+        genre: book.genre,
+        ...updates
+      }
+    }));
+    return true;
+  }, [isAuthenticated]);
 
   const saveBook = useCallback((book) => {
-    if (!isAuthenticated) return false
+    return updateBook(book, { saved: true, savedAt: new Date().toISOString() });
+  }, [updateBook]);
 
+  const removeBookStatus = useCallback((isbn, updates) => {
+    if (!isAuthenticated) return false;
     setLibrary(prev => {
-      const existing = prev[book.isbn] || {}
-      return {
-        ...prev,
-        [book.isbn]: {
-          // Preserve existing library data (including user's rating!)
-          ...existing,
-          // Only add essential book fields (not rating from catalog)
-          isbn: book.isbn,
-          title: book.title,
-          author: book.author,
-          genre: book.genre,
-          // Set saved status (preserve existing rating/review)
-          saved: true,
-          savedAt: new Date().toISOString()
+      const updated = { ...prev };
+      if (updated[isbn]) {
+        updated[isbn] = { ...updated[isbn], ...updates };
+        if (!hasValidStatus(updated[isbn])) {
+          delete updated[isbn];
         }
       }
-    })
-    return true
-  }, [isAuthenticated])
+      return updated;
+    });
+    return true;
+  }, [isAuthenticated]);
 
   const unsaveBook = useCallback((isbn) => {
-    if (!isAuthenticated) return false
-
-    setLibrary(prev => {
-      const updated = { ...prev }
-      if (updated[isbn]) {
-        updated[isbn] = { ...updated[isbn], saved: false }
-        
-        // If book has no valid status, remove it
-        if (!hasValidStatus(updated[isbn])) {
-          delete updated[isbn]
-        }
-      }
-      return updated
-    })
-    return true
-  }, [isAuthenticated])
+    return removeBookStatus(isbn, { saved: false });
+  }, [removeBookStatus]);
 
   const favoriteBook = useCallback((book) => {
-    if (!isAuthenticated) return false
-
-    setLibrary(prev => {
-      const existing = prev[book.isbn] || {}
-      return {
-        ...prev,
-        [book.isbn]: {
-          // Preserve existing library data (including user's rating!)
-          ...existing,
-          // Only add essential book fields (not rating from catalog)
-          isbn: book.isbn,
-          title: book.title,
-          author: book.author,
-          genre: book.genre,
-          // Set favorite status (preserve existing rating/review)
-          favorite: true,
-          favoritedAt: new Date().toISOString()
-        }
-      }
-    })
-    return true
-  }, [isAuthenticated])
+    return updateBook(book, { favorite: true, favoritedAt: new Date().toISOString() });
+  }, [updateBook]);
 
   const unfavoriteBook = useCallback((isbn) => {
-    if (!isAuthenticated) return false
-
-    setLibrary(prev => {
-      const updated = { ...prev }
-      if (updated[isbn]) {
-        updated[isbn] = { ...updated[isbn], favorite: false }
-        
-        // If book has no valid status, remove it
-        if (!hasValidStatus(updated[isbn])) {
-          delete updated[isbn]
-        }
-      }
-      return updated
-    })
-    return true
-  }, [isAuthenticated])
+    return removeBookStatus(isbn, { favorite: false });
+  }, [removeBookStatus]);
 
   const rateBook = useCallback((book, rating) => {
-    if (!isAuthenticated) return false
-
-    setLibrary(prev => {
-      const existing = prev[book.isbn] || {}
-      return {
-        ...prev,
-        [book.isbn]: {
-          // Preserve existing library data
-          ...existing,
-          // Only add essential book fields (not rating from catalog)
-          isbn: book.isbn,
-          title: book.title,
-          author: book.author,
-          genre: book.genre,
-          // Set user's rating (this is the user's rating, not catalog average)
-          rated: true,
-          rating: rating,
-          ratingLabel: getRatingLabel(rating),
-          ratedAt: new Date().toISOString()
-        }
-      }
-    })
-    return true
-  }, [isAuthenticated])
+    return updateBook(book, {
+      rated: true,
+      rating,
+      ratingLabel: getRatingLabel(rating),
+      ratedAt: new Date().toISOString()
+    });
+  }, [updateBook]);
 
   const unrateBook = useCallback((isbn) => {
-    if (!isAuthenticated) return false
-
-    setLibrary(prev => {
-      const updated = { ...prev }
-      if (updated[isbn]) {
-        updated[isbn] = { ...updated[isbn], rated: false, rating: null, ratingLabel: '—' }
-        
-        // If book has no valid status, remove it
-        if (!hasValidStatus(updated[isbn])) {
-          delete updated[isbn]
-        }
-      }
-      return updated
-    })
-    return true
-  }, [isAuthenticated])
+    return removeBookStatus(isbn, { rated: false, rating: null, ratingLabel: '—' });
+  }, [removeBookStatus]);
 
   const reviewBook = useCallback((book, review) => {
-    if (!isAuthenticated) return false
-
-    setLibrary(prev => {
-      const existing = prev[book.isbn] || {}
-      return {
-        ...prev,
-        [book.isbn]: {
-          // Preserve existing library data (including user's rating!)
-          ...existing,
-          // Only add essential book fields (not rating from catalog)
-          isbn: book.isbn,
-          title: book.title,
-          author: book.author,
-          genre: book.genre,
-          // Set review data (preserve existing rating)
-          reviewed: true,
-          review: review,
-          reviewedAt: new Date().toISOString()
-        }
-      }
-    })
-    return true
-  }, [isAuthenticated])
+    return updateBook(book, {
+      reviewed: true,
+      review,
+      reviewedAt: new Date().toISOString()
+    });
+  }, [updateBook]);
 
   const unreviewBook = useCallback((isbn) => {
-    if (!isAuthenticated) return false
-
-    setLibrary(prev => {
-      const updated = { ...prev }
-      if (updated[isbn]) {
-        updated[isbn] = { ...updated[isbn], reviewed: false, review: undefined }
-        
-        // If book has no valid status, remove it
-        if (!hasValidStatus(updated[isbn])) {
-          delete updated[isbn]
-        }
-      }
-      return updated
-    })
-    return true
-  }, [isAuthenticated])
+    return removeBookStatus(isbn, { reviewed: false, review: undefined });
+  }, [removeBookStatus]);
 
   const getBookStatus = useCallback((isbn) => {
     const defaultStatus = {
@@ -378,24 +197,9 @@ export function UserLibraryProvider({ children }) {
   }, [library])
 
   const getAllBooks = useCallback(() => {
-    if (!library || typeof library !== 'object') {
-      return []
-    }
-    // Include all books that are saved, favorited, rated (with actual rating > 0), or reviewed (with actual review text)
-    return Object.values(library).filter(book => {
-      if (!book) return false
-      
-      // Must have at least one valid status
-      const isSaved = book.saved === true
-      const isFavorite = book.favorite === true
-      const isRated = book.rated === true && book.rating !== undefined && book.rating !== null && book.rating > 0
-      const isReviewed = book.reviewed === true && book.review && book.review.trim().length > 0
-      
-      const isValid = isSaved || isFavorite || isRated || isReviewed
-      
-      return isValid
-    })
-  }, [library])
+    if (!library || typeof library !== 'object') return [];
+    return Object.values(library).filter(hasValidStatus);
+  }, [library]);
 
   const value = {
     library,
@@ -426,16 +230,10 @@ export function useUserLibrary() {
   return context
 }
 
-// Helper function to convert rating number to star label
 function getRatingLabel(rating) {
-  if (!rating || rating === 0) return '—'
-  const fullStars = Math.floor(rating)
-  const hasHalfStar = rating % 1 >= 0.5
-  const emptyStars = 5 - fullStars - (hasHalfStar ? 1 : 0)
-  
-  // Use filled star (★) and empty star (☆) Unicode characters
-  return '★'.repeat(fullStars) + 
-         (hasHalfStar ? '★' : '') + 
-         '☆'.repeat(emptyStars)
+  if (!rating || rating === 0) return '—';
+  const fullStars = Math.floor(rating);
+  const hasHalfStar = rating % 1 >= 0.5;
+  return '★'.repeat(fullStars) + (hasHalfStar ? '★' : '') + '☆'.repeat(5 - fullStars - (hasHalfStar ? 1 : 0));
 }
 

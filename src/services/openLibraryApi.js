@@ -36,24 +36,17 @@ const getCoverImage = (coverId, isbn) => {
 };
 
 const getAuthorName = (authorArray) => {
-  if (!authorArray || !Array.isArray(authorArray) || authorArray.length === 0) {
-    return 'Unknown Author';
-  }
-  return authorArray[0];
+  return (authorArray?.[0]) || 'Unknown Author';
 };
+
 const getGenre = (subjectArray) => {
-  if (!subjectArray || !Array.isArray(subjectArray) || subjectArray.length === 0) {
-    return 'Fiction';
-  }
-  const specificGenres = subjectArray.filter(subject => 
-    subject && typeof subject === 'string' && subject.length < 30
-  );
-  return specificGenres[0] || subjectArray[0] || 'Fiction';
+  if (!subjectArray?.length) return 'Fiction';
+  const validSubject = subjectArray.find(s => s && typeof s === 'string' && s.length < 30);
+  return validSubject || subjectArray[0] || 'Fiction';
 };
 
 const formatReleaseDate = (year) => {
-  if (!year) return new Date().toISOString().split('T')[0];
-  return `${year}-01-01`;
+  return year ? `${year}-01-01` : new Date().toISOString().split('T')[0];
 };
 
 const mapOpenLibraryBook = (olBook) => {
@@ -82,43 +75,32 @@ const mapOpenLibraryBook = (olBook) => {
 export const fetchBooksFromOpenLibrary = async (limit = 50) => {
   try {
     const query = 'subject:fiction OR subject:nonfiction OR subject:science OR subject:history';
-    // Include fields parameter to ensure we get the subject field for genre extraction
-    // Without this, all books default to "Fiction" genre
     const url = `https://openlibrary.org/search.json?q=${encodeURIComponent(query)}&limit=${limit}&fields=title,author_name,first_publish_year,isbn,cover_i,subject,key,edition_key`;
     
-    console.log('[openLibraryApi] Fetching from:', url)
     const response = await fetch(url);
-    
     if (!response.ok) {
-      console.error('[openLibraryApi] HTTP error:', response.status, response.statusText)
       throw new Error(`HTTP error! status: ${response.status}`);
     }
     
     const data = await response.json();
-    console.log('[openLibraryApi] Response received, docs count:', data.docs?.length || 0)
-    
-    if (!data.docs || !Array.isArray(data.docs)) {
-      console.error('[openLibraryApi] Invalid response format:', data)
+    if (!Array.isArray(data.docs)) {
       throw new Error('Invalid response format from Open Library');
     }
     
-    // Filter books that have required fields and map them
     const books = data.docs
       .filter(book => {
-        // Ensure book has at least title and either author or ISBN
-        const hasTitle = book.title && book.title.trim().length > 0;
-        const hasAuthor = book.author_name && Array.isArray(book.author_name) && book.author_name.length > 0;
-        const hasIsbn = book.isbn && Array.isArray(book.isbn) && book.isbn.length > 0;
+        const hasTitle = book.title?.trim();
+        const hasAuthor = book.author_name?.length > 0;
+        const hasIsbn = book.isbn?.length > 0;
         return hasTitle && (hasAuthor || hasIsbn);
       })
       .map(mapOpenLibraryBook)
-      .filter(book => book.isbn && book.title) // Ensure mapped book has required fields
+      .filter(book => book.isbn && book.title)
       .slice(0, limit);
     
-    console.log('[openLibraryApi] Mapped', books.length, 'books')
     return books;
   } catch (error) {
-    console.error('[openLibraryApi] Error fetching books from Open Library:', error);
+    console.error('[openLibraryApi] Error:', error);
     throw error;
   }
 };
