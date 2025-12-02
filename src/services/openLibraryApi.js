@@ -82,9 +82,9 @@ const mapOpenLibraryBook = (olBook) => {
 export const fetchBooksFromOpenLibrary = async (limit = 50) => {
   try {
     const query = 'subject:fiction OR subject:nonfiction OR subject:science OR subject:history';
-    // Removed fields parameter - fetch full response and extract what we need
-    // The fields parameter was causing "Internal Server Error" from OpenLibrary API
-    const url = `https://openlibrary.org/search.json?q=${encodeURIComponent(query)}&limit=${limit}`;
+    // Include fields parameter to ensure we get the subject field for genre extraction
+    // Without this, all books default to "Fiction" genre
+    const url = `https://openlibrary.org/search.json?q=${encodeURIComponent(query)}&limit=${limit}&fields=title,author_name,first_publish_year,isbn,cover_i,subject,key,edition_key`;
     
     console.log('[openLibraryApi] Fetching from:', url)
     const response = await fetch(url);
