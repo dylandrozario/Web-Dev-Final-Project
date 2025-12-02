@@ -6,21 +6,61 @@ import shuffleArray from '../utils/shuffle';
  * Returns both score and recommendation reasons
  */
 export function calculateSimilarity(userBooks, candidateBook) {
+  // STRICT: Only use user's actual library data
   if (!userBooks || userBooks.length === 0) return { score: 0, reasons: [] };
+  if (!candidateBook || !candidateBook.isbn) return { score: 0, reasons: [] };
+
+  // First, validate and filter userBooks to only include books with valid interactions
+  const validUserBooks = userBooks.filter(book => {
+    if (!book || !book.isbn) return false;
+    const isSaved = book.saved === true;
+    const isFavorite = book.favorite === true;
+    const isRated = book.rated === true && book.rating !== undefined && book.rating !== null && book.rating > 0;
+    const isReviewed = book.reviewed === true && book.review && book.review.trim().length > 0;
+    return isSaved || isFavorite || isRated || isReviewed;
+  });
+  
+  // If no valid user books after filtering, return no score
+  if (validUserBooks.length === 0) {
+    console.log('[RecommendationEngine] calculateSimilarity: No valid user books after filtering');
+    return { score: 0, reasons: [] };
+  }
 
   let score = 0;
   const reasons = [];
   const genreMatches = new Set();
   const authorMatches = new Set();
+  
+  // Track which genres actually exist in user's valid library
+  const userGenres = new Set();
+  validUserBooks.forEach(book => {
+    if (book.genre) {
+      userGenres.add(book.genre.toLowerCase().trim());
+    }
+  });
 
-  userBooks.forEach(userBook => {
-    // Consider saved, favorited, rated books (any rating > 0), or reviewed books
-    // Include all rated books - lower ratings will have lower weight multipliers
-    const hasRating = userBook.rated && userBook.rating && userBook.rating > 0;
-    // Consider reviewed books (if they have no rating or any rating)
-    const hasReview = userBook.reviewed && userBook.review && userBook.review.trim().length > 0;
-    const relevant = userBook.saved || userBook.favorite || hasRating || hasReview;
-    if (!relevant) return;
+  // Only process valid user books
+  validUserBooks.forEach(userBook => {
+    // STRICT: Only consider books that are actually in user's library with valid data
+    if (!userBook || !userBook.isbn) return;
+    
+    // STRICT: Double-check that this book has a valid interaction status
+    // Must be saved, favorited, rated (with rating > 0), or reviewed (with review text)
+    const isSaved = userBook.saved === true;
+    const isFavorite = userBook.favorite === true;
+    const isRated = userBook.rated === true && userBook.rating !== undefined && userBook.rating !== null && userBook.rating > 0;
+    const isReviewed = userBook.reviewed === true && userBook.review && userBook.review.trim().length > 0;
+    
+    // Only use books that have at least ONE valid interaction
+    const relevant = isSaved || isFavorite || isRated || isReviewed;
+    if (!relevant) {
+      // Skip this book - it doesn't have any valid interaction
+      return;
+    }
+    
+    // Use the specific flags for weight calculation
+    const hasRating = isRated;
+    const hasReview = isReviewed;
 
     // Calculate base weight multiplier based on user engagement
     // Reviews indicate stronger engagement, so weight them higher
@@ -42,19 +82,30 @@ export function calculateSimilarity(userBooks, candidateBook) {
 
     // Same genre - give higher weight (2 points base) since this is the primary focus
     // Use case-insensitive comparison since genres might be stored in different cases
+    // STRICT: Only match if userBook actually has a genre and it matches
     const userGenre = userBook.genre ? userBook.genre.toLowerCase().trim() : null;
     const candidateGenre = candidateBook.genre ? candidateBook.genre.toLowerCase().trim() : null;
-    if (userGenre && candidateGenre && userGenre === candidateGenre) {
-      const genreScore = 2 * weightMultiplier;
-      score += genreScore;
-      if (!genreMatches.has(candidateGenre)) {
-        genreMatches.add(candidateGenre);
-        const reviewNote = hasReview ? ' (reviewed)' : '';
-        reasons.push({
-          type: 'genre',
-          value: candidateBook.genre, // Use original case for display
-          message: `Similar to your ${candidateBook.genre} books${reviewNote}`
-        });
+    
+    // Only add genre match if:
+    // 1. User book has a genre
+    // 2. Candidate book has a genre
+    // 3. They match exactly
+    // 4. User book has valid interaction (already checked above)
+    // 5. This genre actually exists in the user's valid library
+    if (userGenre && candidateGenre && userGenre === candidateGenre && userGenre.length > 0) {
+      // STRICT: Only add reason if this genre is actually in the user's library
+      if (userGenres.has(userGenre)) {
+        const genreScore = 2 * weightMultiplier;
+        score += genreScore;
+        if (!genreMatches.has(candidateGenre)) {
+          genreMatches.add(candidateGenre);
+          const reviewNote = hasReview ? ' (reviewed)' : '';
+          reasons.push({
+            type: 'genre',
+            value: candidateBook.genre, // Use original case for display
+            message: `Similar to your ${candidateBook.genre} books${reviewNote}`
+          });
+        }
       }
     }
 
@@ -101,27 +152,63 @@ export function calculateSimilarity(userBooks, candidateBook) {
 /**
  * Generate a batch of recommendations using tiered shuffling
  */
-export function generateTieredRecommendations(userBooks, allBooks, batchSize = 300) {
+export function generateTieredRecommendations(userBooks, allBooks, batchSize = 750) {
+  // STRICT: Only use user's actual library data - no sample/mock data
   if (!allBooks || allBooks.length === 0) {
-    console.log('[RecommendationEngine] No books available for recommendations')
+    console.log('[RecommendationEngine] No candidate books available');
     return [];
   }
   
-  // If user has no relevant books (saved, favorited, or rated), return no recommendations
+  // STRICT: If user has no relevant books (saved, favorited, or rated), return no recommendations
+  // Do not use any fallback or sample data
   if (!userBooks || userBooks.length === 0) {
-    console.log('[RecommendationEngine] No user books provided')
+    console.log('[RecommendationEngine] No user books provided');
     return [];
   }
-
-  console.log('[RecommendationEngine] Processing', userBooks.length, 'user books against', allBooks.length, 'candidate books')
-
-  // Exclude already interacted books
-  const interactedISBNs = new Set(userBooks.map(b => b.isbn));
-  const candidates = allBooks.filter(b => !interactedISBNs.has(b.isbn));
   
-  console.log('[RecommendationEngine]', candidates.length, 'candidate books after excluding', userBooks.length, 'interacted books')
+  console.log('[RecommendationEngine] ===== PROCESSING RECOMMENDATIONS =====');
+  console.log('[RecommendationEngine] User books count:', userBooks.length);
+  console.log('[RecommendationEngine] User books details:', userBooks.map(book => ({
+    isbn: book.isbn,
+    title: book.title,
+    author: book.author,
+    genre: book.genre,
+    saved: book.saved,
+    favorite: book.favorite,
+    rated: book.rated,
+    rating: book.rating,
+    reviewed: book.reviewed
+  })));
+  
+  // Track genres in user's library
+  const userGenres = [...new Set(userBooks.map(b => b.genre).filter(Boolean))];
+  console.log('[RecommendationEngine] Genres in user library:', userGenres);
+  
+  console.log('[RecommendationEngine] Candidate books count:', allBooks.length);
 
-  // Compute similarity with reasons
+  // Exclude already interacted books - use normalized ISBN comparison
+  // Normalize ISBNs by removing dashes and converting to lowercase for reliable matching
+  const normalizeIsbn = (isbn) => {
+    if (!isbn) return '';
+    return String(isbn).replace(/-/g, '').toLowerCase().trim();
+  };
+  
+  const interactedISBNs = new Set(
+    userBooks
+      .map(b => b.isbn)
+      .filter(Boolean)
+      .map(normalizeIsbn)
+  );
+  
+  // Filter out books that are already in user's library
+  // Use normalized ISBN comparison to catch variations
+  const candidates = allBooks.filter(b => {
+    if (!b || !b.isbn) return false;
+    const normalizedCandidateIsbn = normalizeIsbn(b.isbn);
+    return !interactedISBNs.has(normalizedCandidateIsbn);
+  });
+
+  // Compute similarity with reasons - ONLY based on user's actual library
   const scored = candidates.map(book => {
     const { score, reasons } = calculateSimilarity(userBooks, book);
     return {
@@ -132,14 +219,25 @@ export function generateTieredRecommendations(userBooks, allBooks, batchSize = 3
   });
 
   // Filter out books with score 0 (no matches) - these shouldn't be recommended
-  const relevantBooks = scored.filter(book => book.score > 0);
+  // Only recommend books that have a MINIMUM score threshold to ensure quality matches
+  // Lowered to 1.0 to include significantly more recommendations (allows weaker matches)
+  const MIN_SCORE_THRESHOLD = 1.0;
+  const relevantBooks = scored.filter(book => book.score >= MIN_SCORE_THRESHOLD);
   
-  console.log('[RecommendationEngine]', relevantBooks.length, 'books with similarity score > 0')
+  console.log('[RecommendationEngine] Books with score >=', MIN_SCORE_THRESHOLD, ':', relevantBooks.length);
+  if (relevantBooks.length > 0) {
+    console.log('[RecommendationEngine] Top scored books:', relevantBooks.slice(0, 5).map(book => ({
+      title: book.title,
+      genre: book.genre,
+      score: book.score,
+      reasons: book.recommendationReasons?.map(r => r.message) || []
+    })));
+  }
   
-  // If no books have any similarity, return empty array
+  // If no books have any similarity to user's library, return empty array
+  // Do not show any recommendations if they don't match user's actual data
   if (relevantBooks.length === 0) {
-    console.log('[RecommendationEngine] No books found with matching genres/authors. User book genres:', 
-      [...new Set(userBooks.map(b => b.genre).filter(Boolean))])
+    console.log('[RecommendationEngine] No books meet minimum score threshold');
     return [];
   }
 
@@ -153,11 +251,36 @@ export function generateTieredRecommendations(userBooks, allBooks, batchSize = 3
   const tier2 = shuffleArray(relevantBooks.slice(chunk, chunk * 2));
   const tier3 = shuffleArray(relevantBooks.slice(chunk * 2));
 
-  // Select batchSize / 3 from each tier
+  // Select books from each tier, prioritizing higher tiers but filling up to batchSize
+  // Start with equal distribution, then fill remaining slots from higher tiers
   const itemsPerTier = Math.floor(batchSize / 3);
-  const t1Selection = tier1.slice(0, itemsPerTier);
-  const t2Selection = tier2.slice(0, itemsPerTier);
-  const t3Selection = tier3.slice(0, batchSize - t1Selection.length - t2Selection.length);
+  const t1Selection = tier1.slice(0, Math.min(itemsPerTier, tier1.length));
+  const t2Selection = tier2.slice(0, Math.min(itemsPerTier, tier2.length));
+  const t3Selection = tier3.slice(0, Math.min(itemsPerTier, tier3.length));
+  
+  // Fill remaining slots from higher tiers if available
+  let finalSelection = [...t1Selection, ...t2Selection, ...t3Selection];
+  let remaining = batchSize - finalSelection.length;
+  
+  // Fill from tier 1 first (highest quality)
+  if (remaining > 0 && t1Selection.length < tier1.length) {
+    const additional = tier1.slice(t1Selection.length, t1Selection.length + remaining);
+    finalSelection = [...t1Selection, ...additional, ...t2Selection, ...t3Selection];
+    remaining = batchSize - finalSelection.length;
+  }
+  
+  // Then fill from tier 2
+  if (remaining > 0 && t2Selection.length < tier2.length) {
+    const additional = tier2.slice(t2Selection.length, t2Selection.length + remaining);
+    finalSelection = [...t1Selection, ...t2Selection, ...additional, ...t3Selection];
+    remaining = batchSize - finalSelection.length;
+  }
+  
+  // Finally fill from tier 3
+  if (remaining > 0 && t3Selection.length < tier3.length) {
+    const additional = tier3.slice(t3Selection.length, t3Selection.length + remaining);
+    finalSelection = [...t1Selection, ...t2Selection, ...t3Selection, ...additional];
+  }
 
-  return [...t1Selection, ...t2Selection, ...t3Selection];
+  return finalSelection;
 }

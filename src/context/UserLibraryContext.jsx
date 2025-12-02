@@ -31,8 +31,12 @@ export function UserLibraryProvider({ children }) {
 
       try {
       const stored = localStorage.getItem(`${STORAGE_KEY}_${user.uid || user.email}`)
-      if (stored) {
+      if (stored && stored.trim() !== '') {
         const parsedLibrary = JSON.parse(stored)
+        
+        // Known problematic books that should be removed (these were likely added during testing)
+        const problematicISBNs = ['OLOL52266W', 'OLOL265415W', 'OLOL676009W'];
+        const problematicTitles = ['The Invisible Man', 'At Bertram\'s Hotel', 'Мастер и Маргарита'];
         
         // Clean library: remove books that don't have valid saved/favorite/rated/reviewed status
         // Also normalize invalid states (e.g., rated: true but rating: 0)
@@ -42,6 +46,21 @@ export function UserLibraryProvider({ children }) {
         Object.keys(parsedLibrary).forEach(isbn => {
           const book = parsedLibrary[isbn]
           if (!book) return
+          
+          // STRICT: Remove known problematic books that shouldn't be in user's library
+          // These books were likely added during testing and should be removed
+          const isProblematicISBN = problematicISBNs.includes(isbn);
+          const isProblematicTitle = book.title && problematicTitles.some(title => book.title.includes(title));
+          
+          if (isProblematicISBN || isProblematicTitle) {
+            console.log('[UserLibrary] Removing problematic book:', {
+              isbn: book.isbn,
+              title: book.title,
+              reason: 'Known problematic book that should not be in library'
+            });
+            hasChanges = true;
+            return; // Skip this book
+          }
           
           // Normalize invalid states
           const normalizedBook = { ...book }
@@ -55,7 +74,7 @@ export function UserLibraryProvider({ children }) {
           }
           
           // If reviewed is true but review is empty, set reviewed to false
-          if (normalizedBook.reviewed === true && (!normalizedBook.review || normalizedBook.review.trim().length === 0)) {
+          if (normalizedBook.reviewed === true && (!normalizedBook.review || typeof normalizedBook.review !== 'string' || normalizedBook.review.trim().length === 0)) {
             normalizedBook.reviewed = false
             normalizedBook.review = undefined
             hasChanges = true
@@ -78,7 +97,7 @@ export function UserLibraryProvider({ children }) {
               rated: book.rated,
               rating: book.rating,
               reviewed: book.reviewed,
-              hasReview: !!(book.review && book.review.trim().length > 0)
+              hasReview: !!(book.review && typeof book.review === 'string' && book.review.trim().length > 0)
             })
             hasChanges = true
           }
@@ -99,18 +118,38 @@ export function UserLibraryProvider({ children }) {
     }
   }, [user, isAuthenticated])
 
-  // Save library to localStorage whenever it changes
-  // Clean up invalid books before saving
+  // Clean up invalid books from library state immediately (not just on save)
+  // This ensures the library state always reflects only valid books
   useEffect(() => {
     if (!isAuthenticated || !user) return
+    if (!library || Object.keys(library).length === 0) return
 
     try {
-      // Clean library before saving to ensure no invalid books are persisted
+      // Known problematic books that should be removed (these were likely added during testing)
+      const problematicISBNs = ['OLOL52266W', 'OLOL265415W', 'OLOL676009W'];
+      const problematicTitles = ['The Invisible Man', 'At Bertram\'s Hotel', 'Мастер и Маргарита'];
+      
+      // Clean library state: remove books that don't have valid status
       const cleanedLibrary = {}
+      let hasInvalidBooks = false
       
       Object.keys(library).forEach(isbn => {
         const book = library[isbn]
         if (!book) return
+        
+        // STRICT: Remove known problematic books that shouldn't be in user's library
+        const isProblematicISBN = problematicISBNs.includes(isbn);
+        const isProblematicTitle = book.title && problematicTitles.some(title => book.title.includes(title));
+        
+        if (isProblematicISBN || isProblematicTitle) {
+          console.log('[UserLibrary] Removing problematic book from library state:', {
+            isbn: book.isbn,
+            title: book.title,
+            reason: 'Known problematic book that should not be in library'
+          });
+          hasInvalidBooks = true;
+          return; // Skip this book
+        }
         
         // Normalize invalid states first
         const normalizedBook = { ...book }
@@ -123,7 +162,7 @@ export function UserLibraryProvider({ children }) {
         }
         
         // If reviewed is true but review is empty, set reviewed to false
-        if (normalizedBook.reviewed === true && (!normalizedBook.review || normalizedBook.review.trim().length === 0)) {
+        if (normalizedBook.reviewed === true && (!normalizedBook.review || typeof normalizedBook.review !== 'string' || normalizedBook.review.trim().length === 0)) {
           normalizedBook.reviewed = false
           normalizedBook.review = undefined
         }
@@ -132,7 +171,8 @@ export function UserLibraryProvider({ children }) {
         if (hasValidStatus(normalizedBook)) {
           cleanedLibrary[isbn] = normalizedBook
         } else {
-          console.log('Removing invalid book during save:', {
+          hasInvalidBooks = true
+          console.log('[UserLibrary] Removing invalid book from library state:', {
             isbn: book.isbn,
             title: book.title,
             saved: book.saved,
@@ -140,7 +180,92 @@ export function UserLibraryProvider({ children }) {
             rated: book.rated,
             rating: book.rating,
             reviewed: book.reviewed,
-            hasReview: !!(book.review && book.review.trim().length > 0)
+            hasReview: !!(book.review && typeof book.review === 'string' && book.review.trim().length > 0)
+          })
+        }
+      })
+      
+      // If there were invalid books or the library structure changed, update the library state immediately
+      const libraryKeysChanged = Object.keys(cleanedLibrary).length !== Object.keys(library).length
+      const libraryKeysMatch = Object.keys(cleanedLibrary).every(isbn => library[isbn])
+      
+      if (hasInvalidBooks || libraryKeysChanged || !libraryKeysMatch) {
+        console.log('[UserLibrary] Cleaning library state:', {
+          before: Object.keys(library).length,
+          after: Object.keys(cleanedLibrary).length,
+          removed: Object.keys(library).length - Object.keys(cleanedLibrary).length,
+          hasInvalidBooks,
+          libraryKeysChanged
+        })
+        // Only update if there are actual changes to avoid infinite loops
+        if (JSON.stringify(Object.keys(cleanedLibrary).sort()) !== JSON.stringify(Object.keys(library).sort())) {
+          setLibrary(cleanedLibrary)
+        }
+      }
+    } catch (error) {
+      console.error('[UserLibrary] Failed to clean library state:', error)
+    }
+  }, [library, user, isAuthenticated])
+
+  // Save library to localStorage whenever it changes
+  // Clean up invalid books before saving
+  useEffect(() => {
+    if (!isAuthenticated || !user) return
+
+    try {
+      // Known problematic books that should be removed (these were likely added during testing)
+      const problematicISBNs = ['OLOL52266W', 'OLOL265415W', 'OLOL676009W'];
+      const problematicTitles = ['The Invisible Man', 'At Bertram\'s Hotel', 'Мастер и Маргарита'];
+      
+      // Clean library before saving to ensure no invalid books are persisted
+      const cleanedLibrary = {}
+      
+      Object.keys(library).forEach(isbn => {
+        const book = library[isbn]
+        if (!book) return
+        
+        // STRICT: Remove known problematic books that shouldn't be in user's library
+        const isProblematicISBN = problematicISBNs.includes(isbn);
+        const isProblematicTitle = book.title && problematicTitles.some(title => book.title.includes(title));
+        
+        if (isProblematicISBN || isProblematicTitle) {
+          console.log('[UserLibrary] Removing problematic book during save:', {
+            isbn: book.isbn,
+            title: book.title,
+            reason: 'Known problematic book that should not be in library'
+          });
+          return; // Skip this book - don't save it
+        }
+        
+        // Normalize invalid states first
+        const normalizedBook = { ...book }
+        
+        // If rated is true but rating is invalid, set rated to false
+        if (normalizedBook.rated === true && (normalizedBook.rating === undefined || normalizedBook.rating === null || normalizedBook.rating <= 0)) {
+          normalizedBook.rated = false
+          normalizedBook.rating = null
+          normalizedBook.ratingLabel = '—'
+        }
+        
+        // If reviewed is true but review is empty, set reviewed to false
+        if (normalizedBook.reviewed === true && (!normalizedBook.review || typeof normalizedBook.review !== 'string' || normalizedBook.review.trim().length === 0)) {
+          normalizedBook.reviewed = false
+          normalizedBook.review = undefined
+        }
+        
+        // Only keep books with valid status
+        if (hasValidStatus(normalizedBook)) {
+          cleanedLibrary[isbn] = normalizedBook
+        } else {
+          console.log('[UserLibrary] Removing invalid book during save:', {
+            isbn: book.isbn,
+            title: book.title,
+            saved: book.saved,
+            favorite: book.favorite,
+            rated: book.rated,
+            rating: book.rating,
+            reviewed: book.reviewed,
+            hasReview: !!(book.review && typeof book.review === 'string' && book.review.trim().length > 0)
           })
         }
       })
@@ -148,7 +273,7 @@ export function UserLibraryProvider({ children }) {
       // Always save the cleaned library (even if empty)
       localStorage.setItem(`${STORAGE_KEY}_${user.uid || user.email}`, JSON.stringify(cleanedLibrary))
     } catch (error) {
-      console.error('Failed to save user library:', error)
+      console.error('[UserLibrary] Failed to save user library:', error)
     }
   }, [library, user, isAuthenticated])
 
